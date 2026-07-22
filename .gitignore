@@ -1,0 +1,43 @@
+# ==========================
+# Laravel
+# ==========================
+
+backend/vendor/
+backend/node_modules/
+
+backend/storage/logs/*
+!backend/storage/logs/.gitignore
+
+backend/storage/framework/cache/*
+!backend/storage/framework/cache/.gitignore
+
+backend/storage/framework/sessions/*
+!backend/storage/framework/sessions/.gitignore
+
+backend/storage/framework/views/*
+!backend/storage/framework/views/.gitignore
+
+backend/bootstrap/cache/*
+
+backend/.env
+
+# ==========================
+# React
+# ==========================
+
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# ==========================
+# IDE
+# ==========================
+
+.vscode/settings.json
+
+# ==========================
+# OS
+# ==========================
+
+.DS_Store
+Thumbs.db
