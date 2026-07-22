@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
- * Modelo que representa un rol del sistema.
+ * Modelo que representa un permiso del sistema.
  *
  * @property int $id
  * @property string $nombre
@@ -15,14 +15,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  */
-class Rol extends Model
+class Permiso extends Model
 {
     /**
      * Nombre de la tabla asociada al modelo.
      *
      * @var string
      */
-    protected $table = 'roles';
+    protected $table = 'permisos';
 
     /**
      * Atributos asignables masivamente.
@@ -49,15 +49,15 @@ class Rol extends Model
     }
 
     /**
-     * Permisos asignados al rol.
+     * Roles que poseen este permiso.
      */
-    public function permisos(): BelongsToMany
+    public function roles(): BelongsToMany
     {
         return $this->belongsToMany(
-            Permiso::class,
+            Rol::class,
             'rol_permiso',
-            'rol_id',
-            'permiso_id'
+            'permiso_id',
+            'rol_id'
         )->withTimestamps();
     }
 }
