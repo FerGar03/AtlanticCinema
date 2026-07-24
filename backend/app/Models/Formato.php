@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modelo que representa un formato de proyección.
@@ -45,5 +46,10 @@ class Formato extends Model
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    public function funciones(): HasMany
+    {
+        return $this->hasMany(Funcion::class, 'formato_id');
     }
 }

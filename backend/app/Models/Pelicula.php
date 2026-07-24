@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modelo que representa una película.
@@ -87,5 +88,10 @@ class Pelicula extends Model
             'pelicula_id',
             'genero_id'
         )->withTimestamps();
+    }
+
+    public function funciones(): HasMany
+    {
+        return $this->hasMany(Funcion::class, 'pelicula_id');
     }
 }

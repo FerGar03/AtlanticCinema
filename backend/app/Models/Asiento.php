@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Asiento extends Model
 {
@@ -36,6 +37,7 @@ class Asiento extends Model
     {
         return [
             'sala_id' => 'integer',
+            'numero' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -47,5 +49,10 @@ class Asiento extends Model
     public function sala(): BelongsTo
     {
         return $this->belongsTo(Sala::class, 'sala_id');
+    }
+
+    public function funcionAsientos(): HasMany
+    {
+        return $this->hasMany(FuncionAsiento::class, 'asiento_id');
     }
 }

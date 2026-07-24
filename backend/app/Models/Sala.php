@@ -51,4 +51,9 @@ class Sala extends Model
     {
         return $this->hasMany(Asiento::class, 'sala_id');
     }
+
+    public function funciones(): HasMany
+    {
+        return $this->hasMany(Funcion::class, 'sala_id');
+    }
 }
