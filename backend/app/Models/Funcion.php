@@ -56,4 +56,9 @@ class Funcion extends Model
     {
         return $this->hasMany(Reserva::class);
     }
+
+    public function ventas(): HasMany
+    {
+        return $this->hasMany(Venta::class);
+    }
 }

@@ -42,4 +42,9 @@ class FuncionAsiento extends Model
     {
         return $this->hasMany(ReservaDetalle::class);
     }
+
+    public function entradas(): HasMany
+    {
+        return $this->hasMany(Entrada::class);
+    }
 }

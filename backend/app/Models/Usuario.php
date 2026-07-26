@@ -57,4 +57,14 @@ class Usuario extends Authenticatable
     {
         return $this->hasMany(Reserva::class);
     }
+
+    public function ventasComoCliente(): HasMany
+    {
+        return $this->hasMany(Venta::class, 'cliente_id');
+    }
+
+    public function ventasComoEmpleado(): HasMany
+    {
+        return $this->hasMany(Venta::class, 'empleado_id');
+    }
 }

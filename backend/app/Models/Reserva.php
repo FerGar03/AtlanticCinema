@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Reserva extends Model
 {
@@ -58,5 +59,10 @@ class Reserva extends Model
     public function detalles(): HasMany
     {
         return $this->hasMany(ReservaDetalle::class);
+    }
+
+    public function venta(): HasOne
+    {
+        return $this->hasOne(Venta::class);
     }
 }
