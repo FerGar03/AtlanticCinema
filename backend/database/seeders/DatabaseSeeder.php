@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             FormatoSeeder::class,
             PeliculaSeeder::class,
             UsuarioSeeder::class,
+            MetodoPagoSeeder::class,
         ]);
     }
 }
