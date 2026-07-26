@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             GeneroSeeder::class,
             FormatoSeeder::class,
             PeliculaSeeder::class,
+            UsuarioSeeder::class,
         ]);
     }
 }

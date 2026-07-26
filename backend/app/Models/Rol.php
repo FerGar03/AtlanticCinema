@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modelo que representa un rol del sistema.
@@ -59,5 +60,10 @@ class Rol extends Model
             'rol_id',
             'permiso_id'
         )->withTimestamps();
+    }
+    
+    public function usuarios(): HasMany
+    {
+        return $this->hasMany(Usuario::class);
     }
 }

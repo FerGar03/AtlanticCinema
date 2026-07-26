@@ -51,4 +51,9 @@ class Funcion extends Model
     {
         return $this->hasMany(FuncionAsiento::class, 'funcion_id');
     }
+
+    public function reservas(): HasMany
+    {
+        return $this->hasMany(Reserva::class);
+    }
 }
