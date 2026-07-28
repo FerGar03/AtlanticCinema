@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Api\VentaController;
 use App\Http\Controllers\Api\PagoController;
+use App\Http\Controllers\Api\FacturaController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -31,3 +32,7 @@ Route::get('/pagos', [PagoController::class, 'index']);
 Route::post('/pagos', [PagoController::class, 'store']);
 Route::get('/pagos/{pago}', [PagoController::class, 'show'])
     ->whereNumber('pago');
+    
+Route::get('/facturas', [FacturaController::class, 'index']);
+Route::post('/facturas', [FacturaController::class, 'store']);
+Route::get('/facturas/{factura}', [FacturaController::class, 'show']);

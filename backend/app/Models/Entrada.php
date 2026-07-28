@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Entrada extends Model
 {
@@ -42,5 +43,10 @@ class Entrada extends Model
     public function funcionAsiento(): BelongsTo
     {
         return $this->belongsTo(FuncionAsiento::class);
+    }
+
+    public function facturaDetalle(): HasOne
+    {
+        return $this->hasOne(FacturaDetalle::class);
     }
 }
