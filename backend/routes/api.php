@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Api\VentaController;
 use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\FacturaController;
+use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\NotificacionController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -36,3 +38,27 @@ Route::get('/pagos/{pago}', [PagoController::class, 'show'])
 Route::get('/facturas', [FacturaController::class, 'index']);
 Route::post('/facturas', [FacturaController::class, 'store']);
 Route::get('/facturas/{factura}', [FacturaController::class, 'show']);
+
+Route::get('/tickets', [TicketController::class, 'index']);
+
+Route::post('/tickets', [TicketController::class, 'store']);
+
+Route::post('/tickets/validar', [TicketController::class, 'validar']);
+
+Route::get('/tickets/{ticket}', [TicketController::class, 'show'])
+    ->whereNumber('ticket');
+
+Route::get(
+    '/notificaciones',
+    [NotificacionController::class, 'index']
+);
+
+Route::post(
+    '/notificaciones/procesar',
+    [NotificacionController::class, 'procesar']
+);
+
+Route::get(
+    '/notificaciones/{notificacion}',
+    [NotificacionController::class, 'show']
+)->whereNumber('notificacion');

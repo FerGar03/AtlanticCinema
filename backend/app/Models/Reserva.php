@@ -65,4 +65,9 @@ class Reserva extends Model
     {
         return $this->hasOne(Venta::class);
     }
+
+    public function notificaciones(): HasMany
+    {
+        return $this->hasMany(Notificacion::class);
+    }
 }

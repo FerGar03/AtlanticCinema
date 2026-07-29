@@ -51,4 +51,9 @@ class Factura extends Model
     {
         return $this->hasMany(FacturaIntento::class);
     }
+
+    public function notificaciones(): HasMany
+    {
+        return $this->hasMany(Notificacion::class);
+    }
 }

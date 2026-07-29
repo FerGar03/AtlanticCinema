@@ -78,4 +78,9 @@ class Venta extends Model
     {
         return $this->hasOne(Factura::class);
     }
+
+    public function notificaciones(): HasMany
+    {
+        return $this->hasMany(Notificacion::class);
+    }
 }
