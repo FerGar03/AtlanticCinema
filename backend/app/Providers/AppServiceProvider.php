@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Contracts\ProveedorFelInterface;
+use App\Contracts\ProveedorPagoInterface;
+use App\Services\Pagos\SimuladorPagoService;
 use App\Services\SimuladorFelService;
 use Illuminate\Support\ServiceProvider;
 
@@ -16,6 +18,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             ProveedorFelInterface::class,
             SimuladorFelService::class
+        );
+
+        $this->app->bind(
+            ProveedorPagoInterface::class,
+            SimuladorPagoService::class
         );
     }
 
