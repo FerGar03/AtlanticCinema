@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ConfirmarPagoSimuladoRequest;
 use App\Http\Requests\StorePagoRequest;
 use App\Models\Pago;
 use App\Services\PagoService;
@@ -43,6 +44,22 @@ class PagoController extends Controller
         ], 201);
     }
 
+    public function confirmarSimulacion(
+        ConfirmarPagoSimuladoRequest $request,
+        Pago $pago
+    ): JsonResponse {
+        $pagoConfirmado = $this->pagoService->confirmarSimulado(
+            $pago,
+            $request->validated('resultado')
+    );
+
+    return response()->json([
+        'message' => $pagoConfirmado->estado === 'APROBADO'
+            ? 'Pago simulado aprobado correctamente.'
+            : 'Pago simulado rechazado correctamente.',
+            'data' => $pagoConfirmado,
+        ]);
+    }
     public function show(Pago $pago): JsonResponse
     {
         $pago->load([

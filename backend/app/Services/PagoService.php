@@ -99,6 +99,59 @@ class PagoService
             $contexto['metodo_pago']
         );
     }
+    public function confirmarSimulado(
+    Pago $pago,
+    string $resultado
+): Pago {
+    return DB::transaction(function () use ($pago, $resultado) {
+        $pagoBloqueado = Pago::query()
+            ->lockForUpdate()
+            ->findOrFail($pago->id);
+
+        $venta = Venta::query()
+            ->with('entradas')
+            ->lockForUpdate()
+            ->findOrFail($pagoBloqueado->venta_id);
+
+        if ($pagoBloqueado->proveedor !== 'SIMULADOR') {
+            throw ValidationException::withMessages([
+                'pago' => 'El pago no pertenece al proveedor simulado.',
+            ]);
+        }
+
+        if ($pagoBloqueado->estado !== 'PENDIENTE') {
+            throw ValidationException::withMessages([
+                'pago' => 'El pago ya fue procesado anteriormente.',
+            ]);
+        }
+
+        $estado = $resultado === 'APROBADO'
+            ? 'APROBADO'
+            : 'RECHAZADO';
+
+        $pagoBloqueado->update([
+            'estado' => $estado,
+            'autorizacion_codigo' => $estado === 'APROBADO'
+                ? 'SIM-AUTH-' . strtoupper(bin2hex(random_bytes(6)))
+                : null,
+            'aprobado_en' => $estado === 'APROBADO'
+                ? now()
+                : null,
+            'descripcion' => $estado === 'APROBADO'
+                ? 'Pago aprobado por el simulador.'
+                : 'Pago rechazado por el simulador.',
+        ]);
+
+        if ($estado === 'APROBADO') {
+            $this->marcarVentaComoPagada($venta);
+        }
+
+        return $pagoBloqueado->load([
+            'venta.entradas',
+            'metodoPago',
+        ]);
+    });
+}
 
     private function procesarPagoExterno(
         Pago $pago,
@@ -136,6 +189,11 @@ class PagoService
                 if ($respuesta['estado'] === 'APROBADO') {
                     $this->marcarVentaComoPagada($ventaBloqueada);
                 }
+
+                $pagoBloqueado->setAttribute(
+                    'client_secret',
+                    $respuesta['client_secret'] ?? null
+                );
 
                 return $pagoBloqueado->load([
                     'venta.entradas',

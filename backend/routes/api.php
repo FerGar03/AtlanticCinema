@@ -32,6 +32,10 @@ Route::get('/ventas/{venta}', [VentaController::class, 'show']);
 
 Route::get('/pagos', [PagoController::class, 'index']);
 Route::post('/pagos', [PagoController::class, 'store']);
+Route::post(
+    '/pagos/{pago}/confirmar-simulacion',
+    [PagoController::class, 'confirmarSimulacion']
+)->whereNumber('pago');
 Route::get('/pagos/{pago}', [PagoController::class, 'show'])
     ->whereNumber('pago');
     

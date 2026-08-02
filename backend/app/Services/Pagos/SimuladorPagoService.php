@@ -13,16 +13,19 @@ class SimuladorPagoService implements ProveedorPagoInterface
         Venta $venta,
         MetodoPago $metodoPago
     ): array {
+        $referencia = 'SIM-PI-' . Str::upper(Str::random(20));
+
         return [
             'proveedor' => 'SIMULADOR',
-            'referencia_proveedor' => 'SIM-' . Str::upper(Str::random(20)),
-            'estado' => 'APROBADO',
-            'autorizacion_codigo' => Str::upper(Str::random(12)),
+            'referencia_proveedor' => $referencia,
+            'estado' => 'PENDIENTE',
+            'autorizacion_codigo' => null,
             'descripcion' => sprintf(
-                'Pago simulado para la venta %s mediante %s.',
+                'Intento de pago simulado creado para la venta %s mediante %s.',
                 $venta->numero_venta,
                 $metodoPago->nombre
             ),
+            'client_secret' => 'sim_secret_' . Str::random(32),
         ];
     }
 }

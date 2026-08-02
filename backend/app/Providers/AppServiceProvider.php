@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\ProveedorFelInterface;
 use App\Contracts\ProveedorPagoInterface;
 use App\Services\Pagos\SimuladorPagoService;
+use App\Services\Pagos\StripePagoService;
 use App\Services\SimuladorFelService;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,7 +23,9 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(
             ProveedorPagoInterface::class,
-            SimuladorPagoService::class
+            config('services.payments.provider') === 'stripe'
+                ? StripePagoService::class
+                : SimuladorPagoService::class
         );
     }
 

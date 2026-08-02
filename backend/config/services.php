@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'payments' => [
+        'provider' => env('PAYMENT_PROVIDER', 'simulator'),
+    ],
+
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
 ];
