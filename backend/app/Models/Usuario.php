@@ -24,6 +24,8 @@ class Usuario extends Authenticatable
         'nombres',
         'apellidos',
         'correo',
+        'google_id',
+        'avatar_url',
         'password',
         'telefono',
         'nit',
