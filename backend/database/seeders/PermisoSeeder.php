@@ -74,8 +74,16 @@ class PermisoSeeder extends Seeder
             // Reportes
             ['reportes.ver', 'Permite consultar los reportes del sistema.'],
 
+            // Tickets
+            ['tickets.ver', 'Permite consultar los tickets generados.'],
+            ['tickets.generar', 'Permite generar tickets para las ventas.'],
+            ['tickets.validar', 'Permite validar tickets de entrada.'],
+
             // Notificaciones
+            ['notificaciones.ver', 'Permite consultar las notificaciones.'],
             ['notificaciones.enviar', 'Permite enviar notificaciones a los clientes.'],
+            ['notificaciones.procesar', 'Permite procesar las notificaciones pendientes.'],
+
         ];
 
         foreach ($permisos as [$nombre, $descripcion]) {

@@ -7,6 +7,8 @@ use App\Http\Requests\ProcesarNotificacionRequest;
 use App\Models\Notificacion;
 use App\Services\NotificacionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class NotificacionController extends Controller
 {
@@ -16,18 +18,31 @@ class NotificacionController extends Controller
     }
 
     /**
-     * Lista las notificaciones.
+     * Lista las notificaciones autorizadas para el usuario autenticado.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $notificaciones = Notificacion::query()
+        Gate::authorize('viewAny', Notificacion::class);
+
+        $usuario = $request->user();
+
+        $consulta = Notificacion::query()
             ->with([
                 'usuario',
                 'venta',
                 'reserva',
                 'factura',
                 'ticket',
-            ])
+            ]);
+
+        if ($usuario->rol?->nombre === 'Cliente') {
+            $consulta->where(
+                'usuario_id',
+                $usuario->id
+            );
+        }
+
+        $notificaciones = $consulta
             ->latest()
             ->get();
 
@@ -43,6 +58,11 @@ class NotificacionController extends Controller
     public function procesar(
         ProcesarNotificacionRequest $request
     ): JsonResponse {
+        Gate::authorize(
+            'procesar',
+            Notificacion::class
+        );
+
         $notificacion = $this->notificacionService->procesar(
             (int) $request->validated('notificacion_id')
         );
@@ -59,6 +79,8 @@ class NotificacionController extends Controller
     public function show(
         Notificacion $notificacion
     ): JsonResponse {
+        Gate::authorize('view', $notificacion);
+
         $notificacion->load([
             'usuario',
             'venta',

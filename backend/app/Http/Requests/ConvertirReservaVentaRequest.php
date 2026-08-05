@@ -27,12 +27,6 @@ class ConvertirReservaVentaRequest extends FormRequest
                 'integer',
                 'exists:reservas,id',
             ],
-
-            'empleado_id' => [
-                'nullable',
-                'integer',
-                'exists:usuarios,id',
-            ],
         ];
     }
 
@@ -44,12 +38,14 @@ class ConvertirReservaVentaRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'reserva_id.required' => 'La reserva es obligatoria.',
-            'reserva_id.integer' => 'La reserva seleccionada no es válida.',
-            'reserva_id.exists' => 'La reserva seleccionada no existe.',
+            'reserva_id.required' =>
+                'La reserva es obligatoria.',
 
-            'empleado_id.integer' => 'El empleado seleccionado no es válido.',
-            'empleado_id.exists' => 'El empleado seleccionado no existe.',
+            'reserva_id.integer' =>
+                'La reserva seleccionada no es válida.',
+
+            'reserva_id.exists' =>
+                'La reserva seleccionada no existe.',
         ];
     }
 }

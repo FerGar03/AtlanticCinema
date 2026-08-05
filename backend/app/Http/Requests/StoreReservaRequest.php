@@ -22,12 +22,6 @@ class StoreReservaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'usuario_id' => [
-                'required',
-                'integer',
-                'exists:usuarios,id',
-            ],
-
             'funcion_id' => [
                 'required',
                 'integer',
@@ -58,19 +52,12 @@ class StoreReservaRequest extends FormRequest
 
     /**
      * Mensajes personalizados de validación.
+     *
+     * @return array<string, string>
      */
     public function messages(): array
     {
         return [
-            'usuario_id.required' =>
-                'El usuario es obligatorio.',
-
-            'usuario_id.integer' =>
-                'El identificador del usuario debe ser un número entero.',
-
-            'usuario_id.exists' =>
-                'El usuario seleccionado no existe.',
-
             'funcion_id.required' =>
                 'La función es obligatoria.',
 

@@ -7,6 +7,9 @@ use App\Http\Requests\ConvertirReservaVentaRequest;
 use App\Models\Venta;
 use App\Services\VentaService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use App\Models\Reserva;
 
 class VentaController extends Controller
 {
@@ -16,11 +19,15 @@ class VentaController extends Controller
     }
 
     /**
-     * Lista las ventas registradas.
+     * Lista las ventas autorizadas para el usuario autenticado.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $ventas = Venta::query()
+        Gate::authorize('viewAny', Venta::class);
+
+        $usuario = $request->user();
+
+        $consulta = Venta::query()
             ->with([
                 'cliente',
                 'empleado',
@@ -28,7 +35,13 @@ class VentaController extends Controller
                 'funcion.pelicula',
                 'funcion.sala',
                 'entradas.funcionAsiento.asiento',
-            ])
+            ]);
+
+        if ($usuario->rol?->nombre === 'Cliente') {
+            $consulta->where('cliente_id', $usuario->id);
+        }
+
+        $ventas = $consulta
             ->latest('realizada_en')
             ->get();
 
@@ -39,16 +52,29 @@ class VentaController extends Controller
     }
 
     /**
-     * Convierte una reserva pendiente en venta.
+     * Convierte una reserva autorizada en venta.
      */
     public function storeDesdeReserva(
         ConvertirReservaVentaRequest $request
     ): JsonResponse {
+        $usuario = $request->user();
+
+        $reserva = Reserva::query()
+            ->findOrFail($request->integer('reserva_id'));
+
+        Gate::authorize('convertirEnVenta', $reserva);
+
+        $empleadoId = in_array(
+            $usuario->rol?->nombre,
+            ['Administrador', 'Empleado'],
+            true
+        )
+            ? $usuario->id
+            : null;
+
         $venta = $this->ventaService->crearDesdeReserva(
-            reservaId: $request->integer('reserva_id'),
-            empleadoId: $request->filled('empleado_id')
-                ? $request->integer('empleado_id')
-                : null,
+            reservaId: $reserva->id,
+            empleadoId: $empleadoId,
         );
 
         return response()->json([
@@ -62,6 +88,8 @@ class VentaController extends Controller
      */
     public function show(Venta $venta): JsonResponse
     {
+        Gate::authorize('view', $venta);
+
         $venta->load([
             'cliente',
             'empleado',

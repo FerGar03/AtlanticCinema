@@ -38,6 +38,12 @@ class RolPermisoSeeder extends Seeder
                 'pagos.registrar',
                 'facturas.ver',
                 'facturas.generar',
+                'tickets.ver',
+                'tickets.generar',
+                'tickets.validar',
+                'notificaciones.ver',
+                'notificaciones.enviar',
+                'notificaciones.procesar',
             ])->pluck('id')->toArray()
         );
 
@@ -46,7 +52,15 @@ class RolPermisoSeeder extends Seeder
             Permiso::whereIn('nombre', [
                 'peliculas.ver',
                 'funciones.ver',
+                'reservas.ver',
                 'reservas.crear',
+                'ventas.ver',
+                'ventas.registrar',
+                'pagos.ver',
+                'pagos.registrar',
+                'facturas.ver',
+                'tickets.ver',
+                'notificaciones.ver',
             ])->pluck('id')->toArray()
         );
     }

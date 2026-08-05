@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GenerarTicketRequest;
+use App\Http\Requests\ValidarTicketRequest;
 use App\Models\Ticket;
+use App\Models\Venta;
 use App\Services\TicketService;
 use Illuminate\Http\JsonResponse;
-use App\Http\Requests\ValidarTicketRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class TicketController extends Controller
@@ -19,15 +22,33 @@ class TicketController extends Controller
     }
 
     /**
-     * Lista todos los tickets.
+     * Lista los tickets autorizados para el usuario autenticado.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $tickets = Ticket::query()
+        Gate::authorize('viewAny', Ticket::class);
+
+        $usuario = $request->user();
+
+        $consulta = Ticket::query()
             ->with([
                 'entrada.venta',
                 'notificaciones',
-            ])
+            ]);
+
+        if ($usuario->rol?->nombre === 'Cliente') {
+            $consulta->whereHas(
+                'entrada.venta',
+                function ($query) use ($usuario): void {
+                    $query->where(
+                        'cliente_id',
+                        $usuario->id
+                    );
+                }
+            );
+        }
+
+        $tickets = $consulta
             ->latest('generado_en')
             ->get();
 
@@ -40,10 +61,23 @@ class TicketController extends Controller
     /**
      * Genera los tickets de una venta pagada.
      */
-    public function store(GenerarTicketRequest $request): JsonResponse
-    {
+    public function store(
+        GenerarTicketRequest $request
+    ): JsonResponse {
+        Gate::authorize('create', Ticket::class);
+
+        $venta = Venta::query()
+            ->findOrFail(
+                $request->integer('venta_id')
+            );
+
+        Gate::authorize(
+            'generarParaVenta',
+            [Ticket::class, $venta]
+        );
+
         $tickets = $this->ticketService->generarParaVenta(
-            (int) $request->validated('venta_id')
+            $venta->id
         );
 
         return response()->json([
@@ -57,6 +91,8 @@ class TicketController extends Controller
      */
     public function show(Ticket $ticket): JsonResponse
     {
+        Gate::authorize('view', $ticket);
+
         $ticket->load([
             'entrada.venta',
             'notificaciones',
@@ -69,10 +105,13 @@ class TicketController extends Controller
     }
 
     /**
-    * Valida y utiliza un ticket electrónico.
-    */
-    public function validar(ValidarTicketRequest $request): JsonResponse
-    {
+     * Valida y utiliza un ticket electrónico.
+     */
+    public function validar(
+        ValidarTicketRequest $request
+    ): JsonResponse {
+        Gate::authorize('validar', Ticket::class);
+
         $ticket = DB::transaction(function () use ($request) {
             $ticket = Ticket::query()
                 ->with([

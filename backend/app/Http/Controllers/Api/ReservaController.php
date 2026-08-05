@@ -7,6 +7,8 @@ use App\Http\Requests\StoreReservaRequest;
 use App\Models\Reserva;
 use App\Services\ReservaService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ReservaController extends Controller
 {
@@ -16,18 +18,28 @@ class ReservaController extends Controller
     }
 
     /**
-     * Lista las reservas registradas.
-     */
-    public function index(): JsonResponse
+    * Lista las reservas autorizadas para el usuario autenticado.
+    */
+    public function index(Request $request): JsonResponse
     {
-        $reservas = Reserva::query()
+        Gate::authorize('viewAny', Reserva::class);
+
+        $usuario = $request->user();
+
+        $consulta = Reserva::query()
             ->with([
                 'usuario.rol',
                 'funcion.pelicula',
                 'funcion.sala',
                 'funcion.formato',
                 'detalles.funcionAsiento.asiento',
-            ])
+            ]);
+
+        if ($usuario->rol?->nombre === 'Cliente') {
+            $consulta->where('usuario_id', $usuario->id);
+        }
+
+        $reservas = $consulta
             ->latest('reservada_en')
             ->get();
 
@@ -38,13 +50,22 @@ class ReservaController extends Controller
     }
 
     /**
-     * Crea una nueva reserva.
+     * Crea una nueva reserva para el usuario autenticado.
      */
     public function store(StoreReservaRequest $request): JsonResponse
     {
-        $reserva = $this->reservaService->crear(
-            $request->validated()
-        );
+        Gate::authorize('create', Reserva::class);
+
+        $usuario = $request->user();
+        $datos = $request->validated();
+
+        $datos['usuario_id'] = $usuario->id;
+
+        if ($usuario->rol?->nombre === 'Cliente') {
+            $datos['descuento'] = 0;
+        }
+
+        $reserva = $this->reservaService->crear($datos);
 
         return response()->json([
             'message' => 'Reserva creada correctamente.',
@@ -57,6 +78,8 @@ class ReservaController extends Controller
      */
     public function show(Reserva $reserva): JsonResponse
     {
+        Gate::authorize('view', $reserva);
+
         $reserva->load([
             'usuario.rol',
             'funcion.pelicula',
