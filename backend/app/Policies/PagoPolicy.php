@@ -42,11 +42,16 @@ class PagoPolicy
         Usuario $usuario,
         Pago $pago
     ): bool {
-        return $this->esPersonalAutorizado($usuario);
+        if ($this->esPersonalAutorizado($usuario)) {
+            return true;
+        }
+
+        return $pago->venta?->cliente_id === $usuario->id;
     }
 
-    private function esPersonalAutorizado(Usuario $usuario): bool
-    {
+    private function esPersonalAutorizado(
+        Usuario $usuario
+    ): bool {
         return in_array(
             $usuario->rol?->nombre,
             ['Administrador', 'Empleado'],

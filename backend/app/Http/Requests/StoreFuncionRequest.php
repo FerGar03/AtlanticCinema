@@ -58,13 +58,6 @@ class StoreFuncionRequest extends FormRequest
                 'after:inicia_en',
             ],
 
-            'precio_base' => [
-                'required',
-                'numeric',
-                'min:0.01',
-                'decimal:0,2',
-            ],
-
             'estado' => [
                 'required',
                 'string',
@@ -105,11 +98,6 @@ class StoreFuncionRequest extends FormRequest
             'finaliza_en.required' => 'Debe indicar la fecha y hora de finalización.',
             'finaliza_en.date' => 'La fecha y hora de finalización no es válida.',
             'finaliza_en.after' => 'La finalización debe ser posterior al inicio.',
-
-            'precio_base.required' => 'Debe indicar el precio base.',
-            'precio_base.numeric' => 'El precio base debe ser un valor numérico.',
-            'precio_base.min' => 'El precio base debe ser mayor que cero.',
-            'precio_base.decimal' => 'El precio base puede tener como máximo dos decimales.',
 
             'estado.required' => 'Debe indicar el estado de la función.',
             'estado.string' => 'El estado de la función no es válido.',

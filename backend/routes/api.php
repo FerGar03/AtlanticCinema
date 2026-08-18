@@ -112,6 +112,14 @@ Route::get('/ventas', [
     'permiso:ventas.ver',
 ]);
 
+Route::post('/ventas/directa', [
+    VentaController::class,
+    'storeDirecta',
+])->middleware([
+    'auth:sanctum',
+    'permiso:ventas.registrar',
+]);
+
 Route::post('/ventas/desde-reserva', [
     VentaController::class,
     'storeDesdeReserva',

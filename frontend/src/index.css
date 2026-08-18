@@ -1,0 +1,500 @@
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
+
+  #social .button-icon {
+    filter: invert(1) brightness(2);
+  }
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  border-inline: 1px solid var(--border);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+}
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}
+
+.funcion-detalle {
+  width: min(1200px, 94%);
+  margin: 0 auto;
+}
+
+.informacion-funcion {
+  margin-bottom: 2rem;
+}
+
+.seleccion-asientos {
+  margin-top: 2rem;
+}
+
+.pantalla-cine {
+  width: min(700px, 90%);
+  margin: 2rem auto;
+  padding: 0.75rem;
+  text-align: center;
+  background: #35bfc0;
+  color: #151719;
+  font-weight: bold;
+  border-radius: 50% 50% 8px 8px;
+}
+
+.mapa-asientos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding: 1rem 0;
+}
+
+.fila-asientos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-width: max-content;
+}
+
+.asientos-fila {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.nombre-fila {
+  width: 25px;
+  font-weight: bold;
+}
+
+.asiento {
+  min-width: 42px;
+  height: 38px;
+  padding: 0.25rem;
+  border: none;
+  border-radius: 8px 8px 4px 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.asiento:disabled {
+  cursor: not-allowed;
+}
+
+.asiento-disponible {
+  background: #35bfc0;
+  color: #151719;
+}
+
+.asiento-seleccionado {
+  background: #efe5d8;
+  color: #151719;
+  outline: 3px solid #35bfc0;
+}
+
+.asiento-reservado {
+  background: #d6a646;
+  color: #151719;
+}
+
+.asiento-vendido {
+  background: #a84f5d;
+  color: white;
+}
+
+.asiento-bloqueado,
+.asiento-no-disponible {
+  background: #6b7072;
+  color: white;
+}
+
+.leyenda-asientos {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.resumen-seleccion {
+  margin-top: 2rem;
+}
+
+.reserva-confirmada {
+  width: min(700px, 90%);
+  margin: 30px auto;
+  padding: 24px;
+  border: 1px solid #35bfc0;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.reserva-confirmada h2 {
+  margin-top: 0;
+}
+
+.mensaje-error {
+  margin: 12px 0;
+  font-weight: 600;
+}
+
+.resumen-seleccion button {
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.resumen-seleccion button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.reserva-detalle {
+  width: min(900px, 92%);
+  margin: 0 auto;
+  padding: 30px 20px 60px;
+}
+
+.reserva-detalle h1 {
+  text-align: center;
+}
+
+.tarjeta-reserva {
+  width: min(600px, 100%);
+  margin: 30px auto;
+  padding: 30px;
+  border: 1px solid #35bfc0;
+  border-radius: 14px;
+}
+
+.reserva-etiqueta {
+  margin-bottom: 8px;
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+.tarjeta-reserva hr {
+  margin: 20px 0;
+  opacity: 0.25;
+}
+
+.total-reserva {
+  font-size: 1.3rem;
+}
+
+.boton-continuar-pago {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 7px;
+  background: #35bfc0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.instrucciones-taquilla,
+.reserva-vencida,
+.reserva-confirmada {
+  margin-top: 24px;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.instrucciones-taquilla {
+  border: 1px solid #35bfc0;
+}
+
+.instrucciones-taquilla h3,
+.reserva-vencida h3,
+.reserva-confirmada h3 {
+  margin-top: 0;
+}
+
+.reserva-vencida {
+  border: 1px solid #a84f5d;
+}
+
+.reserva-confirmada {
+  border: 1px solid #35bfc0;
+}
+
+.taquilla-reservas {
+  width: min(1100px, 92%);
+  margin: 0 auto;
+  padding: 30px 20px 60px;
+}
+
+.taquilla-reservas h1,
+.encabezado-taquilla {
+  text-align: center;
+}
+
+.taquilla-etiqueta {
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+.buscador-reservas {
+  width: min(650px, 100%);
+  margin: 30px auto;
+}
+
+.buscador-reservas label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.buscador-reservas input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+}
+
+.lista-reservas-taquilla {
+  display: grid;
+  gap: 18px;
+}
+
+.tarjeta-reserva-taquilla {
+  padding: 22px;
+  border: 1px solid #35bfc0;
+  border-radius: 12px;
+}
+
+.tarjeta-reserva-taquilla h3 {
+  margin-top: 0;
+}
+
+.taquilla-reserva-detalle {
+  width: min(900px, 92%);
+  margin: 0 auto;
+  padding: 30px 20px 60px;
+}
+
+.taquilla-reserva-detalle h1 {
+  text-align: center;
+}
+
+.tarjeta-cobro-taquilla {
+  width: min(650px, 100%);
+  margin: 30px auto;
+  padding: 30px;
+  border: 1px solid #35bfc0;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.tarjeta-cobro-taquilla hr {
+  margin: 22px 0;
+  opacity: 0.25;
+}
+
+.boton-taquilla {
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 7px;
+  background: #35bfc0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boton-taquilla:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.resultado-venta-taquilla,
+.pago-taquilla-exitoso {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #35bfc0;
+  border-radius: 10px;
+}
+
+.acciones-compra {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.acciones-compra button {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .acciones-compra {
+    flex-direction: column;
+  }
+}
+
+.pago-compra {
+  width: min(900px, 92%);
+  margin: 0 auto;
+  padding: 30px 20px 60px;
+}
+
+.pago-compra h1 {
+  text-align: center;
+}
+
+.tarjeta-pago-compra {
+  width: min(650px, 100%);
+  margin: 30px auto;
+  padding: 30px;
+  border: 1px solid #35bfc0;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.compra-etiqueta {
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+.tarjeta-pago-compra hr {
+  margin: 22px 0;
+  opacity: 0.25;
+}
+
+.total-compra {
+  font-size: 1.3rem;
+}
+
+.seccion-pago-tarjeta,
+.simulador-pago,
+.pago-exitoso,
+.pago-rechazado {
+  margin-top: 24px;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.seccion-pago-tarjeta,
+.simulador-pago,
+.pago-exitoso {
+  border: 1px solid #35bfc0;
+}
+
+.pago-rechazado {
+  border: 1px solid #a84f5d;
+}
+
+.seccion-pago-tarjeta button {
+  width: 100%;
+}
+
+.acciones-simulador {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.acciones-simulador button {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .acciones-simulador {
+    flex-direction: column;
+  }
+}

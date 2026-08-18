@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Formato;
 use App\Models\Funcion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -29,7 +30,28 @@ class FuncionService
                 ]);
             }
 
-            $funcion = Funcion::create($datos);
+            $formato = Formato::query()
+                ->whereKey($datos['formato_id'])
+                ->where('estado', 'ACTIVO')
+                ->first();
+
+            if (! $formato) {
+                throw ValidationException::withMessages([
+                    'formato_id' => 'El formato seleccionado no existe o está inactivo.',
+                ]);
+            }
+
+            $precioBase = match (strtoupper($formato->nombre)) {
+                '2D' => 35.00,
+                '3D' => 45.00,
+                default => throw ValidationException::withMessages([
+                    'formato_id' => 'El formato seleccionado no tiene un precio configurado.',
+                ]),
+            };
+
+            $datos['precio_base'] = $precioBase;
+
+            $funcion = Funcion::query()->create($datos);
 
             $asientos = $funcion->sala
                 ->asientos()

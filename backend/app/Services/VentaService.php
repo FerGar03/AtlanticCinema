@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Entrada;
+use App\Models\Funcion;
+use App\Models\FuncionAsiento;
 use App\Models\Reserva;
 use App\Models\Venta;
 use Illuminate\Support\Facades\DB;
@@ -12,13 +14,160 @@ use Illuminate\Validation\ValidationException;
 class VentaService
 {
     /**
+     * Crea una compra directa realizada desde la web.
+     */
+    public function crearDirecta(
+        int $clienteId,
+        int $funcionId,
+        array $funcionAsientoIds
+    ): Venta {
+        return DB::transaction(function () use (
+            $clienteId,
+            $funcionId,
+            $funcionAsientoIds
+        ): Venta {
+            $funcion = Funcion::query()
+                ->lockForUpdate()
+                ->findOrFail($funcionId);
+
+            if ($funcion->estado !== 'PROGRAMADA') {
+                throw ValidationException::withMessages([
+                    'funcion_id' => [
+                        'La función no está disponible para compras.',
+                    ],
+                ]);
+            }
+
+            if ($funcion->inicia_en->isPast()) {
+                throw ValidationException::withMessages([
+                    'funcion_id' => [
+                        'No es posible comprar entradas para una función que ya inició.',
+                    ],
+                ]);
+            }
+
+            $ids = collect($funcionAsientoIds)
+                ->map(fn ($id): int => (int) $id)
+                ->unique()
+                ->values();
+
+            if ($ids->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'funcion_asiento_ids' => [
+                        'Debe seleccionar al menos un asiento.',
+                    ],
+                ]);
+            }
+
+            if ($ids->count() > 5) {
+                throw ValidationException::withMessages([
+                    'funcion_asiento_ids' => [
+                        'Solo se pueden comprar hasta cinco asientos por operación.',
+                    ],
+                ]);
+            }
+
+            $asientos = FuncionAsiento::query()
+                ->where('funcion_id', $funcion->id)
+                ->whereIn('id', $ids)
+                ->lockForUpdate()
+                ->get();
+
+            if ($asientos->count() !== $ids->count()) {
+                throw ValidationException::withMessages([
+                    'funcion_asiento_ids' => [
+                        'Uno o más asientos no pertenecen a la función seleccionada.',
+                    ],
+                ]);
+            }
+
+            $noDisponibles = $asientos
+                ->where('estado', '!=', 'DISPONIBLE');
+
+            if ($noDisponibles->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'funcion_asiento_ids' => [
+                        'Uno o más asientos seleccionados ya no están disponibles.',
+                    ],
+                ]);
+            }
+
+            $subtotal = round(
+                (float) $asientos->sum(
+                    fn (FuncionAsiento $asiento): float =>
+                        (float) $asiento->precio
+                ),
+                2
+            );
+
+            $descuento = 0.00;
+            $total = $subtotal;
+
+            $ahora = now();
+
+            $bloqueadoHasta = $ahora
+                ->copy()
+                ->addMinutes(
+                    config('compras.minutos_pago', 10)
+                );
+
+            $venta = Venta::query()->create([
+                'numero_venta' => $this->generarNumeroVenta(),
+                'cliente_id' => $clienteId,
+                'empleado_id' => null,
+                'reserva_id' => null,
+                'funcion_id' => $funcion->id,
+                'origen' => 'COMPRA_WEB',
+                'subtotal' => $subtotal,
+                'descuento' => $descuento,
+                'total' => $total,
+                'estado' => 'PENDIENTE',
+                'realizada_en' => $ahora,
+                'pagada_en' => null,
+                'cancelada_en' => null,
+                'motivo_cancelacion' => null,
+            ]);
+
+            foreach ($asientos as $funcionAsiento) {
+                Entrada::query()->create([
+                    'venta_id' => $venta->id,
+                    'funcion_asiento_id' => $funcionAsiento->id,
+                    'codigo' => $this->generarCodigoEntrada(),
+                    'precio' => $funcionAsiento->precio,
+                    'estado' => 'PENDIENTE',
+                    'emitida_en' => $ahora,
+                    'utilizada_en' => null,
+                    'cancelada_en' => null,
+                    'reembolsada_en' => null,
+                ]);
+
+                $funcionAsiento->update([
+                    'estado' => 'BLOQUEADO',
+                    'bloqueado_hasta' => $bloqueadoHasta,
+                ]);
+            }
+
+            return $venta->load([
+                'cliente',
+                'funcion.pelicula',
+                'funcion.sala',
+                'funcion.formato',
+                'entradas.funcionAsiento.asiento',
+            ]);
+        }, 3);
+    }
+
+    /**
      * Convierte una reserva pendiente en una venta.
      */
     public function crearDesdeReserva(
         int $reservaId,
         ?int $empleadoId = null
     ): Venta {
-        return DB::transaction(function () use ($reservaId, $empleadoId): Venta {
+        return DB::transaction(function () use (
+            $reservaId,
+            $empleadoId
+        ): Venta {
             $reserva = Reserva::query()
                 ->with([
                     'detalles.funcionAsiento',
@@ -61,7 +210,7 @@ class VentaService
 
             $ahora = now();
 
-            $venta = Venta::create([
+            $venta = Venta::query()->create([
                 'numero_venta' => $this->generarNumeroVenta(),
                 'cliente_id' => $reserva->usuario_id,
                 'empleado_id' => $empleadoId,
@@ -79,7 +228,7 @@ class VentaService
             ]);
 
             foreach ($reserva->detalles as $detalle) {
-                Entrada::create([
+                Entrada::query()->create([
                     'venta_id' => $venta->id,
                     'funcion_asiento_id' => $detalle->funcion_asiento_id,
                     'codigo' => $this->generarCodigoEntrada(),
@@ -116,11 +265,9 @@ class VentaService
         }, 3);
     }
 
-    /**
-     * Valida que la reserva pueda convertirse en venta.
-     */
-    private function validarReservaConvertible(Reserva $reserva): void
-    {
+    private function validarReservaConvertible(
+        Reserva $reserva
+    ): void {
         if ($reserva->estado !== 'PENDIENTE') {
             throw ValidationException::withMessages([
                 'reserva_id' => [
@@ -132,7 +279,7 @@ class VentaService
         if ($reserva->expira_en->isPast()) {
             throw ValidationException::withMessages([
                 'reserva_id' => [
-                    'La reserva ha expirado y ya no puede convertirse en venta.',
+                    'La reserva ha vencido y ya no puede convertirse en venta.',
                 ],
             ]);
         }
@@ -154,13 +301,12 @@ class VentaService
         }
     }
 
-    /**
-     * Genera un número único para la venta.
-     */
     private function generarNumeroVenta(): string
     {
         do {
-            $numero = 'VEN-' . strtoupper(Str::random(12));
+            $numero = 'VEN-' . strtoupper(
+                Str::random(12)
+            );
         } while (
             Venta::query()
                 ->where('numero_venta', $numero)
@@ -170,13 +316,12 @@ class VentaService
         return $numero;
     }
 
-    /**
-     * Genera un código único para una entrada.
-     */
     private function generarCodigoEntrada(): string
     {
         do {
-            $codigo = 'ENT-' . strtoupper(Str::random(16));
+            $codigo = 'ENT-' . strtoupper(
+                Str::random(16)
+            );
         } while (
             Entrada::query()
                 ->where('codigo', $codigo)

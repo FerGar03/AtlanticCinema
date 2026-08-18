@@ -12,8 +12,6 @@ use Illuminate\Validation\ValidationException;
 
 class ReservaService
 {
-    private const MINUTOS_EXPIRACION = 15;
-
     /**
      * Crea una reserva y bloquea sus asientos dentro de una transacción.
      *
@@ -50,7 +48,31 @@ class ReservaService
                 ]);
             }
 
-            $funcionAsientoIds = collect($datos['funcion_asiento_ids'])
+            $minutosAntesFuncion = config(
+                'reservas.minutos_antes_funcion',
+                30
+            );
+
+            $horasExpiracion = config(
+                'reservas.horas_expiracion',
+                2
+            );
+
+            $limiteAntesFuncion = $funcion->inicia_en
+                ->copy()
+                ->subMinutes($minutosAntesFuncion);
+
+            if (now()->gte($limiteAntesFuncion)) {
+                throw ValidationException::withMessages([
+                    'funcion_id' => [
+                        "Las reservas en línea cierran {$minutosAntesFuncion} minutos antes del inicio de la función.",
+                    ],
+                ]);
+            }
+
+            $funcionAsientoIds = collect(
+                $datos['funcion_asiento_ids']
+            )
                 ->map(fn ($id): int => (int) $id)
                 ->unique()
                 ->values();
@@ -112,9 +134,16 @@ class ReservaService
             $total = round($subtotal - $descuento, 2);
 
             $reservadaEn = now();
-            $expiraEn = $reservadaEn
+
+            $expiraPorTiempo = $reservadaEn
                 ->copy()
-                ->addMinutes(self::MINUTOS_EXPIRACION);
+                ->addHours($horasExpiracion);
+
+            $expiraEn = $expiraPorTiempo->lte(
+                $limiteAntesFuncion
+            )
+                ? $expiraPorTiempo
+                : $limiteAntesFuncion;
 
             $reserva = Reserva::create([
                 'codigo' => $this->generarCodigo(),
@@ -160,7 +189,10 @@ class ReservaService
         Collection $funcionAsientoIds,
         Collection $funcionAsientos
     ): void {
-        if ($funcionAsientos->count() !== $funcionAsientoIds->count()) {
+        if (
+            $funcionAsientos->count()
+            !== $funcionAsientoIds->count()
+        ) {
             throw ValidationException::withMessages([
                 'funcion_asiento_ids' => [
                     'Uno o más asientos no existen o no pertenecen a la función seleccionada.',
@@ -188,7 +220,9 @@ class ReservaService
     private function generarCodigo(): string
     {
         do {
-            $codigo = 'RES-' . strtoupper(Str::random(12));
+            $codigo = 'RES-' . strtoupper(
+                Str::random(12)
+            );
         } while (
             Reserva::query()
                 ->where('codigo', $codigo)
