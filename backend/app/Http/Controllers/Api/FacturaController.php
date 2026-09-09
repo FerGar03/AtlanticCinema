@@ -29,8 +29,12 @@ class FacturaController extends Controller
 
         $consulta = Factura::query()
             ->with([
-                'venta',
-                'detalles.entrada',
+                'venta.cliente',
+                'venta.empleado',
+                'venta.funcion.pelicula',
+                'venta.funcion.sala',
+                'venta.funcion.formato',
+                'detalles.entrada.funcionAsiento.asiento',
                 'intentos',
             ]);
 
@@ -51,7 +55,8 @@ class FacturaController extends Controller
             ->get();
 
         return response()->json([
-            'message' => 'Facturas obtenidas correctamente.',
+            'message' =>
+                'Facturas obtenidas correctamente.',
             'data' => $facturas,
         ]);
     }
@@ -62,7 +67,10 @@ class FacturaController extends Controller
     public function store(
         StoreFacturaRequest $request
     ): JsonResponse {
-        Gate::authorize('create', Factura::class);
+        Gate::authorize(
+            'create',
+            Factura::class
+        );
 
         $datos = $request->validated();
 
@@ -76,16 +84,21 @@ class FacturaController extends Controller
             [Factura::class, $venta]
         );
 
-        $factura = $this->facturaService->generar(
-            $venta->id,
-            [
-                'nit_receptor' => $datos['nit_receptor'],
-                'nombre_receptor' => $datos['nombre_receptor'],
-            ]
-        );
+        $factura =
+            $this->facturaService->generar(
+                $venta->id,
+                [
+                    'nit_receptor' =>
+                        $datos['nit_receptor'],
+
+                    'nombre_receptor' =>
+                        $datos['nombre_receptor'],
+                ]
+            );
 
         return response()->json([
-            'message' => 'Factura electrónica generada y certificada correctamente.',
+            'message' =>
+                'Factura electrónica generada y certificada correctamente.',
             'data' => $factura,
         ], 201);
     }
@@ -96,16 +109,24 @@ class FacturaController extends Controller
     public function show(
         Factura $factura
     ): JsonResponse {
-        Gate::authorize('view', $factura);
+        Gate::authorize(
+            'view',
+            $factura
+        );
 
         $factura->load([
-            'venta',
-            'detalles.entrada',
+            'venta.cliente',
+            'venta.empleado',
+            'venta.funcion.pelicula',
+            'venta.funcion.sala',
+            'venta.funcion.formato',
+            'detalles.entrada.funcionAsiento.asiento',
             'intentos',
         ]);
 
         return response()->json([
-            'message' => 'Factura obtenida correctamente.',
+            'message' =>
+                'Factura obtenida correctamente.',
             'data' => $factura,
         ]);
     }

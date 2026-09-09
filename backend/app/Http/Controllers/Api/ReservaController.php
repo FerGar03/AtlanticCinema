@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CancelarReservaRequest;
 use App\Http\Requests\StoreReservaRequest;
 use App\Models\Reserva;
 use App\Services\ReservaService;
@@ -18,8 +19,8 @@ class ReservaController extends Controller
     }
 
     /**
-    * Lista las reservas autorizadas para el usuario autenticado.
-    */
+     * Lista las reservas autorizadas para el usuario autenticado.
+     */
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Reserva::class);
@@ -33,10 +34,14 @@ class ReservaController extends Controller
                 'funcion.sala',
                 'funcion.formato',
                 'detalles.funcionAsiento.asiento',
+                'venta',
             ]);
 
         if ($usuario->rol?->nombre === 'Cliente') {
-            $consulta->where('usuario_id', $usuario->id);
+            $consulta->where(
+                'usuario_id',
+                $usuario->id
+            );
         }
 
         $reservas = $consulta
@@ -44,7 +49,8 @@ class ReservaController extends Controller
             ->get();
 
         return response()->json([
-            'message' => 'Reservas obtenidas correctamente.',
+            'message' =>
+                'Reservas obtenidas correctamente.',
             'data' => $reservas,
         ]);
     }
@@ -52,23 +58,34 @@ class ReservaController extends Controller
     /**
      * Crea una nueva reserva para el usuario autenticado.
      */
-    public function store(StoreReservaRequest $request): JsonResponse
-    {
-        Gate::authorize('create', Reserva::class);
+    public function store(
+        StoreReservaRequest $request
+    ): JsonResponse {
+        Gate::authorize(
+            'create',
+            Reserva::class
+        );
 
         $usuario = $request->user();
         $datos = $request->validated();
 
-        $datos['usuario_id'] = $usuario->id;
+        $datos['usuario_id'] =
+            $usuario->id;
 
-        if ($usuario->rol?->nombre === 'Cliente') {
+        if (
+            $usuario->rol?->nombre
+            === 'Cliente'
+        ) {
             $datos['descuento'] = 0;
         }
 
-        $reserva = $this->reservaService->crear($datos);
+        $reserva =
+            $this->reservaService
+                ->crear($datos);
 
         return response()->json([
-            'message' => 'Reserva creada correctamente.',
+            'message' =>
+                'Reserva creada correctamente.',
             'data' => $reserva,
         ], 201);
     }
@@ -76,9 +93,13 @@ class ReservaController extends Controller
     /**
      * Muestra una reserva específica.
      */
-    public function show(Reserva $reserva): JsonResponse
-    {
-        Gate::authorize('view', $reserva);
+    public function show(
+        Reserva $reserva
+    ): JsonResponse {
+        Gate::authorize(
+            'view',
+            $reserva
+        );
 
         $reserva->load([
             'usuario.rol',
@@ -86,10 +107,35 @@ class ReservaController extends Controller
             'funcion.sala',
             'funcion.formato',
             'detalles.funcionAsiento.asiento',
+            'venta',
         ]);
 
         return response()->json([
-            'message' => 'Reserva obtenida correctamente.',
+            'message' =>
+                'Reserva obtenida correctamente.',
+            'data' => $reserva,
+        ]);
+    }
+
+    /**
+     * Cancela administrativamente una reserva pendiente.
+     */
+    public function cancelar(
+        CancelarReservaRequest $request,
+        Reserva $reserva
+    ): JsonResponse {
+        $reserva =
+            $this->reservaService
+                ->cancelar(
+                    $reserva,
+                    $request->validated()[
+                        'motivo_cancelacion'
+                    ]
+                );
+
+        return response()->json([
+            'message' =>
+                'Reserva cancelada correctamente.',
             'data' => $reserva,
         ]);
     }

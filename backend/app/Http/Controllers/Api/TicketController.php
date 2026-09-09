@@ -21,9 +21,6 @@ class TicketController extends Controller
     ) {
     }
 
-    /**
-     * Lista los tickets autorizados para el usuario autenticado.
-     */
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Ticket::class);
@@ -32,7 +29,12 @@ class TicketController extends Controller
 
         $consulta = Ticket::query()
             ->with([
-                'entrada.venta',
+                'entrada.venta.cliente',
+                'entrada.venta.empleado',
+                'entrada.funcionAsiento.asiento',
+                'entrada.funcionAsiento.funcion.pelicula',
+                'entrada.funcionAsiento.funcion.sala',
+                'entrada.funcionAsiento.funcion.formato',
                 'notificaciones',
             ]);
 
@@ -53,14 +55,12 @@ class TicketController extends Controller
             ->get();
 
         return response()->json([
-            'message' => 'Tickets obtenidos correctamente.',
+            'message' =>
+                'Tickets obtenidos correctamente.',
             'data' => $tickets,
         ]);
     }
 
-    /**
-     * Genera los tickets de una venta pagada.
-     */
     public function store(
         GenerarTicketRequest $request
     ): JsonResponse {
@@ -76,111 +76,130 @@ class TicketController extends Controller
             [Ticket::class, $venta]
         );
 
-        $tickets = $this->ticketService->generarParaVenta(
-            $venta->id
-        );
+        $tickets =
+            $this->ticketService
+                ->generarParaVenta(
+                    $venta->id
+                );
 
         return response()->json([
-            'message' => 'Tickets generados correctamente.',
+            'message' =>
+                'Tickets generados correctamente.',
             'data' => $tickets,
         ], 201);
     }
 
-    /**
-     * Muestra un ticket específico.
-     */
-    public function show(Ticket $ticket): JsonResponse
-    {
+    public function show(
+        Ticket $ticket
+    ): JsonResponse {
         Gate::authorize('view', $ticket);
 
         $ticket->load([
-            'entrada.venta',
+            'entrada.venta.cliente',
+            'entrada.venta.empleado',
+            'entrada.funcionAsiento.asiento',
+            'entrada.funcionAsiento.funcion.pelicula',
+            'entrada.funcionAsiento.funcion.sala',
+            'entrada.funcionAsiento.funcion.formato',
             'notificaciones',
         ]);
 
         return response()->json([
-            'message' => 'Ticket obtenido correctamente.',
+            'message' =>
+                'Ticket obtenido correctamente.',
             'data' => $ticket,
         ]);
     }
 
-    /**
-     * Valida y utiliza un ticket electrónico.
-     */
     public function validar(
         ValidarTicketRequest $request
     ): JsonResponse {
-        Gate::authorize('validar', Ticket::class);
+        Gate::authorize(
+            'validar',
+            Ticket::class
+        );
 
-        $ticket = DB::transaction(function () use ($request) {
-            $ticket = Ticket::query()
-                ->with([
-                    'entrada.venta',
+        $ticket = DB::transaction(
+            function () use ($request) {
+                $ticket = Ticket::query()
+                    ->with([
+                        'entrada.venta.cliente',
+                        'entrada.funcionAsiento.asiento',
+                        'entrada.funcionAsiento.funcion.pelicula',
+                        'entrada.funcionAsiento.funcion.sala',
+                        'entrada.funcionAsiento.funcion.formato',
+                    ])
+                    ->where(
+                        'token_validacion',
+                        $request->validated(
+                            'token_validacion'
+                        )
+                    )
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $ticket) {
+                    throw ValidationException::withMessages([
+                        'token_validacion' => [
+                            'El ticket indicado no existe.',
+                        ],
+                    ]);
+                }
+
+                if ($ticket->estado !== 'ACTIVO') {
+                    throw ValidationException::withMessages([
+                        'token_validacion' => [
+                            'El ticket no se encuentra activo.',
+                        ],
+                    ]);
+                }
+
+                if (! $ticket->entrada) {
+                    throw ValidationException::withMessages([
+                        'token_validacion' => [
+                            'El ticket no tiene una entrada asociada.',
+                        ],
+                    ]);
+                }
+
+                if (
+                    $ticket->entrada->estado
+                    !== 'VALIDA'
+                ) {
+                    throw ValidationException::withMessages([
+                        'token_validacion' => [
+                            'La entrada asociada no se encuentra válida.',
+                        ],
+                    ]);
+                }
+
+                $fechaUtilizacion = now();
+
+                $ticket->update([
+                    'estado' => 'UTILIZADO',
+                    'utilizado_en' =>
+                        $fechaUtilizacion,
+                ]);
+
+                $ticket->entrada->update([
+                    'estado' => 'UTILIZADA',
+                    'utilizada_en' =>
+                        $fechaUtilizacion,
+                ]);
+
+                return $ticket->fresh([
+                    'entrada.venta.cliente',
                     'entrada.funcionAsiento.asiento',
                     'entrada.funcionAsiento.funcion.pelicula',
                     'entrada.funcionAsiento.funcion.sala',
-                ])
-                ->where(
-                    'token_validacion',
-                    $request->validated('token_validacion')
-                )
-                ->lockForUpdate()
-                ->first();
-
-            if (! $ticket) {
-                throw ValidationException::withMessages([
-                    'token_validacion' => [
-                        'El ticket indicado no existe.',
-                    ],
+                    'entrada.funcionAsiento.funcion.formato',
                 ]);
             }
-
-            if ($ticket->estado !== 'ACTIVO') {
-                throw ValidationException::withMessages([
-                    'token_validacion' => [
-                        'El ticket no se encuentra activo.',
-                    ],
-                ]);
-            }
-
-            if (! $ticket->entrada) {
-                throw ValidationException::withMessages([
-                    'token_validacion' => [
-                        'El ticket no tiene una entrada asociada.',
-                    ],
-                ]);
-            }
-
-            if ($ticket->entrada->estado !== 'VALIDA') {
-                throw ValidationException::withMessages([
-                    'token_validacion' => [
-                        'La entrada asociada no se encuentra válida.',
-                    ],
-                ]);
-            }
-
-            $fechaUtilizacion = now();
-
-            $ticket->update([
-                'estado' => 'UTILIZADO',
-                'utilizado_en' => $fechaUtilizacion,
-            ]);
-
-            $ticket->entrada->update([
-                'estado' => 'UTILIZADA',
-                'utilizada_en' => $fechaUtilizacion,
-            ]);
-
-            return $ticket->fresh([
-                'entrada.venta',
-                'entrada.funcionAsiento.asiento',
-                'entrada.funcionAsiento.funcion.pelicula',
-                'entrada.funcionAsiento.funcion.sala',
-            ]);
-        });
+        );
 
         return response()->json([
-            'message' => 'Ticket validado correctamente.',
+            'message' =>
+                'Ticket validado correctamente.',
             'data' => $ticket,
         ]);
     }

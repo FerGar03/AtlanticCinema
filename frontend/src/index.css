@@ -498,3 +498,1595 @@ code {
     flex-direction: column;
   }
 }
+
+/* =========================================================
+   PANEL ADMINISTRATIVO
+   ========================================================= */
+
+.admin-layout {
+  width: 100%;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  text-align: left;
+}
+
+.admin-sidebar {
+  min-height: 100vh;
+  padding: 24px 18px;
+  box-sizing: border-box;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.admin-marca h2 {
+  margin: 0;
+  font-weight: 700;
+}
+
+.admin-marca p {
+  margin-top: 4px;
+  color: #35bfc0;
+  font-weight: 700;
+}
+
+.admin-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-menu a,
+.admin-sidebar-pie a {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text-h);
+  text-decoration: none;
+}
+
+.admin-menu a:hover,
+.admin-sidebar-pie a:hover {
+  background: rgba(53, 191, 192, 0.12);
+}
+
+.admin-sidebar-pie {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-sidebar-pie button {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-contenido {
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+.admin-encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.admin-encabezado h1 {
+  margin: 8px 0;
+  font-size: 36px;
+}
+
+.admin-etiqueta {
+  color: #35bfc0;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.admin-usuario {
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.admin-usuario span {
+  color: #35bfc0;
+  font-size: 0.9rem;
+}
+
+.admin-dashboard > h2 {
+  margin-bottom: 20px;
+}
+
+.admin-modulos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.admin-modulo-card {
+  min-height: 150px;
+  padding: 22px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text);
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.admin-modulo-card:hover {
+  transform: translateY(-2px);
+  border-color: #35bfc0;
+}
+
+.admin-modulo-card h3 {
+  margin: 0 0 10px;
+  color: var(--text-h);
+}
+
+.admin-modulo-card p {
+  margin-bottom: 18px;
+}
+
+.admin-modulo-card span {
+  color: #35bfc0;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .admin-menu {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-sidebar-pie {
+    margin-top: 0;
+  }
+
+  .admin-modulos-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-contenido {
+    padding: 20px;
+  }
+
+  .admin-encabezado {
+    flex-direction: column;
+  }
+
+  .admin-usuario {
+    text-align: left;
+  }
+
+  .admin-menu,
+  .admin-modulos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE PELÍCULAS
+   ========================================================= */
+
+.admin-pagina {
+  width: 100%;
+  min-height: 100vh;
+  padding: 32px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.admin-pagina-encabezado {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.admin-pagina-encabezado h1 {
+  margin: 8px 0;
+  font-size: 36px;
+}
+
+.admin-volver {
+  color: #35bfc0;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.admin-seccion {
+  margin-bottom: 36px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.admin-seccion h2 {
+  margin-top: 0;
+}
+
+.admin-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.admin-formulario label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-weight: 600;
+}
+
+.admin-formulario input,
+.admin-formulario select,
+.admin-formulario textarea {
+  width: 100%;
+  padding: 11px 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+}
+
+.admin-formulario select option {
+  color: #111;
+}
+
+.admin-formulario textarea {
+  resize: vertical;
+}
+
+.admin-formulario button {
+  align-self: flex-start;
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #35bfc0;
+  color: #061616;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-formulario button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-generos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-generos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-genero-opcion {
+  flex-direction: row !important;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.admin-genero-opcion input {
+  width: auto;
+}
+
+.admin-mensaje {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+
+.admin-mensaje-exito {
+  border: 1px solid #35bfc0;
+}
+
+.admin-mensaje-error {
+  border: 1px solid #e35c5c;
+}
+
+.admin-tabla-contenedor {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-tabla th,
+.admin-tabla td {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-tabla th {
+  color: #35bfc0;
+}
+
+.admin-tabla td small {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.admin-estado-activo,
+.admin-estado-inactivo {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.admin-estado-activo {
+  border: 1px solid #35bfc0;
+}
+
+.admin-estado-inactivo {
+  border: 1px solid #777;
+  opacity: 0.75;
+}
+
+@media (max-width: 700px) {
+  .admin-pagina {
+    padding: 20px;
+  }
+
+  .admin-pagina-encabezado {
+    flex-direction: column;
+  }
+
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   ACCIONES DEL CRUD DE PELÍCULAS
+   ========================================================= */
+
+.admin-seccion-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.admin-seccion-titulo h2 {
+  margin: 0;
+}
+
+.admin-editando {
+  padding: 6px 10px;
+  border: 1px solid #35bfc0;
+  border-radius: 999px;
+  color: #35bfc0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.admin-form-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-formulario
+.admin-boton-secundario {
+  background: transparent;
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+
+.admin-tabla-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-tabla-acciones button {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-h);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.admin-tabla-acciones button:hover {
+  border-color: #35bfc0;
+}
+
+.admin-tabla-acciones button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-tabla-acciones
+.admin-boton-eliminar {
+  border-color: #9f4545;
+}
+
+.admin-tabla-acciones
+.admin-boton-eliminar:hover {
+  border-color: #e35c5c;
+}
+
+@media (max-width: 700px) {
+  .admin-seccion-titulo {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-tabla-acciones {
+    min-width: 130px;
+    flex-direction: column;
+  }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE FUNCIONES
+   ========================================================= */
+
+.admin-precio-formato {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.admin-precio-formato span {
+  font-weight: 600;
+}
+
+.admin-precio-formato strong {
+  color: #35bfc0;
+  font-size: 1.35rem;
+}
+
+.admin-precio-formato small {
+  opacity: 0.7;
+}
+
+.admin-ayuda {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+
+.admin-tabla-funciones {
+  min-width: 1200px;
+}
+
+.admin-tabla-funciones td small {
+  margin-top: 0;
+  opacity: 0.6;
+}
+
+.admin-tabla-funciones td small:not(:first-child) {
+  margin-top: 8px;
+}
+
+.admin-estado-programada,
+.admin-estado-finalizado,
+.admin-estado-cancelado {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.admin-estado-programada {
+  border: 1px solid #35bfc0;
+}
+
+.admin-estado-finalizado {
+  border: 1px solid #888;
+}
+
+.admin-estado-cancelado {
+  border: 1px solid #e35c5c;
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE SALAS Y ASIENTOS
+   ========================================================= */
+
+.admin-salas-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-sala-card {
+  width: 100%;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-sala-card:hover {
+  border-color: #35bfc0;
+}
+
+.admin-sala-card-activa {
+  border-color: #35bfc0;
+}
+
+.admin-sala-card-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.admin-sala-card-cabecera strong {
+  color: var(--text-h);
+  font-size: 1.1rem;
+}
+
+.admin-sala-card p {
+  margin: 8px 0;
+}
+
+.admin-sala-card small {
+  opacity: 0.7;
+}
+
+.admin-estado-mantenimiento {
+  display: inline-block;
+  padding: 5px 9px;
+  border: 1px solid #d7a84d;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.admin-resumen-sala {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-resumen-sala > div {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-resumen-sala span {
+  opacity: 0.7;
+}
+
+.admin-resumen-sala strong {
+  color: #35bfc0;
+  font-size: 1.35rem;
+}
+
+.admin-pantalla-cine {
+  max-width: 700px;
+  margin: 20px auto 40px;
+  padding: 10px;
+  border-top: 4px solid #35bfc0;
+  text-align: center;
+  font-size: 0.8rem;
+  letter-spacing: 3px;
+  opacity: 0.8;
+}
+
+.admin-mapa-asientos {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-fila-asientos {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.admin-fila-etiqueta {
+  padding-top: 13px;
+  color: #35bfc0;
+  font-weight: 700;
+  text-align: center;
+}
+
+.admin-asientos-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-asiento-card {
+  width: 92px;
+  padding: 9px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: center;
+}
+
+.admin-asiento-card strong {
+  color: var(--text-h);
+}
+
+.admin-asiento-card select {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-h);
+  font-size: 0.68rem;
+}
+
+.admin-asiento-card select option {
+  color: #111;
+}
+
+.admin-asiento-card button {
+  padding: 5px 4px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-h);
+  cursor: pointer;
+  font-size: 0.72rem;
+}
+
+.admin-asiento-card button:hover {
+  border-color: #35bfc0;
+}
+
+.admin-asiento-inactivo {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+@media (max-width: 900px) {
+  .admin-salas-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .admin-salas-grid,
+  .admin-resumen-sala {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-asiento-card {
+    width: 80px;
+  }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE USUARIOS
+   ========================================================= */
+
+.admin-buscador {
+  width: min(360px, 100%);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+}
+
+.admin-buscador::placeholder {
+  opacity: 0.65;
+}
+
+.admin-tabla-usuarios {
+  min-width: 1000px;
+}
+
+.admin-estado-bloqueado {
+  display: inline-block;
+  padding: 5px 9px;
+  border: 1px solid #e35c5c;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.admin-formulario label small {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+@media (max-width: 700px) {
+  .admin-buscador {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE RESERVAS
+   ========================================================= */
+
+.admin-filtros-reservas {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-filtros-reservas select {
+  min-width: 190px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+}
+
+.admin-filtros-reservas select option {
+  color: #111;
+}
+
+.admin-tabla-reservas {
+  min-width: 1250px;
+}
+
+.admin-tabla td small {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.admin-estado-pendiente,
+.admin-estado-convertida,
+.admin-estado-cancelada,
+.admin-estado-vencida {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-estado-pendiente {
+  border: 1px solid #d7a84d;
+}
+
+.admin-estado-convertida {
+  border: 1px solid #35bfc0;
+}
+
+.admin-estado-cancelada {
+  border: 1px solid #e35c5c;
+}
+
+.admin-estado-vencida {
+  border: 1px solid #777;
+  opacity: 0.8;
+}
+
+.admin-resumen-reserva {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-resumen-reserva > div {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-resumen-reserva span {
+  opacity: 0.7;
+  font-size: 0.86rem;
+}
+
+.admin-resumen-reserva strong {
+  color: var(--text-h);
+}
+
+.admin-resumen-reserva small {
+  opacity: 0.7;
+}
+
+.admin-detalle-bloque {
+  margin-top: 28px;
+}
+
+.admin-detalle-bloque h3 {
+  margin-bottom: 14px;
+}
+
+.admin-reserva-asientos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-reserva-asiento {
+  min-width: 95px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: center;
+}
+
+.admin-reserva-asiento strong {
+  color: #35bfc0;
+  font-size: 1.05rem;
+}
+
+.admin-reserva-asiento small {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.admin-detalle-reservado {
+  opacity: 0.9;
+}
+
+.admin-detalle-convertido {
+  color: #35bfc0;
+}
+
+.admin-detalle-liberado {
+  opacity: 0.55;
+}
+
+.admin-motivo-cancelacion,
+.admin-venta-relacionada {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.admin-motivo-cancelacion strong,
+.admin-venta-relacionada strong {
+  color: var(--text-h);
+}
+
+.admin-motivo-cancelacion p,
+.admin-venta-relacionada p {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-resumen-reserva {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-resumen-reserva {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filtros-reservas {
+    width: 100%;
+  }
+
+  .admin-filtros-reservas select {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE VENTAS
+   ========================================================= */
+
+.admin-filtros-ventas {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-filtros-ventas select {
+  min-width: 170px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+}
+
+.admin-filtros-ventas select option {
+  color: #111;
+}
+
+.admin-tabla-ventas {
+  min-width: 1200px;
+}
+
+.admin-estado-pagada,
+.admin-estado-fallida {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-estado-pagada {
+  border: 1px solid #35bfc0;
+}
+
+.admin-estado-fallida {
+  border: 1px solid #e35c5c;
+}
+
+.admin-resumen-venta {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-resumen-venta > div {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-resumen-venta span {
+  opacity: 0.7;
+  font-size: 0.86rem;
+}
+
+.admin-resumen-venta strong {
+  color: var(--text-h);
+}
+
+.admin-resumen-venta small {
+  opacity: 0.7;
+}
+
+.admin-venta-entradas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-venta-entrada {
+  min-width: 145px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-venta-entrada > strong {
+  color: #35bfc0;
+  font-size: 1.1rem;
+}
+
+.admin-venta-entrada small {
+  opacity: 0.6;
+  word-break: break-all;
+}
+
+.admin-entrada-valida,
+.admin-entrada-pendiente,
+.admin-entrada-utilizada,
+.admin-entrada-cancelada,
+.admin-entrada-reembolsada {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.admin-entrada-valida {
+  color: #35bfc0;
+}
+
+.admin-entrada-pendiente {
+  opacity: 0.8;
+}
+
+.admin-entrada-utilizada {
+  opacity: 0.65;
+}
+
+.admin-entrada-cancelada,
+.admin-entrada-reembolsada {
+  opacity: 0.55;
+}
+
+@media (max-width: 900px) {
+  .admin-resumen-venta {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-resumen-venta {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filtros-ventas,
+  .admin-filtros-ventas select {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE PAGOS
+   ========================================================= */
+
+.admin-filtros-pagos {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-filtros-pagos select {
+  min-width: 170px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+}
+
+.admin-filtros-pagos select option {
+  color: #111;
+}
+
+.admin-tabla-pagos {
+  min-width: 1250px;
+}
+
+.admin-estado-aprobado,
+.admin-estado-rechazado {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-estado-aprobado {
+  border: 1px solid #35bfc0;
+}
+
+.admin-estado-rechazado {
+  border: 1px solid #e35c5c;
+}
+
+.admin-resumen-pago {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-resumen-pago > div {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.admin-resumen-pago span {
+  opacity: 0.7;
+  font-size: 0.86rem;
+}
+
+.admin-resumen-pago strong {
+  color: var(--text-h);
+}
+
+.admin-resumen-pago small {
+  opacity: 0.7;
+}
+
+.admin-pago-asientos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-pago-asiento {
+  min-width: 130px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.admin-pago-asiento strong {
+  color: #35bfc0;
+  font-size: 1.05rem;
+}
+
+.admin-pago-asiento small {
+  opacity: 0.6;
+  word-break: break-all;
+}
+
+@media (max-width: 900px) {
+  .admin-resumen-pago {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-resumen-pago {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filtros-pagos,
+  .admin-filtros-pagos select {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE FACTURAS
+   ========================================================= */
+
+.admin-filtros-facturas {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-filtros-facturas select {
+  min-width: 180px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+}
+
+.admin-filtros-facturas select option {
+  color: #111;
+}
+
+.admin-tabla-facturas {
+  min-width: 1150px;
+}
+
+.admin-estado-certificada,
+.admin-estado-error {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-estado-certificada {
+  border: 1px solid #35bfc0;
+}
+
+.admin-estado-error {
+  border: 1px solid #e35c5c;
+}
+
+.admin-resumen-factura {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-resumen-factura > div {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.admin-resumen-factura span {
+  opacity: 0.7;
+  font-size: 0.86rem;
+}
+
+.admin-resumen-factura strong {
+  color: var(--text-h);
+}
+
+.admin-factura-lineas {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-factura-linea {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.admin-factura-linea p {
+  margin: 7px 0;
+}
+
+.admin-factura-linea span {
+  display: block;
+  margin-bottom: 5px;
+  opacity: 0.75;
+}
+
+.admin-factura-intentos {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-factura-intento {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.admin-factura-intento > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-factura-intento p {
+  margin: 7px 0;
+}
+
+.admin-factura-intento small {
+  opacity: 0.65;
+}
+
+.admin-intento-pendiente,
+.admin-intento-exitoso,
+.admin-intento-error {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.admin-intento-pendiente {
+  opacity: 0.8;
+}
+
+.admin-intento-exitoso {
+  color: #35bfc0;
+}
+
+.admin-intento-error {
+  color: #e35c5c;
+}
+
+@media (max-width: 900px) {
+  .admin-resumen-factura {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-resumen-factura {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filtros-facturas,
+  .admin-filtros-facturas select {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE TICKETS
+   ========================================================= */
+
+.admin-filtros-tickets {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-filtros-tickets select {
+  min-width: 180px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+}
+
+.admin-filtros-tickets select option {
+  color: #111;
+}
+
+.admin-tabla-tickets {
+  min-width: 1200px;
+}
+
+.admin-estado-utilizado,
+.admin-estado-invalidado {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-estado-utilizado {
+  border: 1px solid #777;
+}
+
+.admin-estado-invalidado {
+  border: 1px solid #e35c5c;
+}
+
+.admin-resumen-ticket {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-resumen-ticket > div {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-resumen-ticket span {
+  opacity: 0.7;
+  font-size: 0.86rem;
+}
+
+.admin-resumen-ticket strong {
+  color: var(--text-h);
+}
+
+.admin-token-ticket {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  word-break: break-all;
+  font-family: monospace;
+  font-size: 0.82rem;
+}
+
+.admin-ticket-notificaciones {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-ticket-notificacion {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-ticket-notificacion strong {
+  color: #35bfc0;
+}
+
+.admin-ticket-notificacion small {
+  opacity: 0.7;
+}
+
+@media (max-width: 900px) {
+  .admin-resumen-ticket {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-resumen-ticket {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filtros-tickets,
+  .admin-filtros-tickets select {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN DE NOTIFICACIONES
+   ========================================================= */
+
+.admin-filtros-notificaciones {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-filtros-notificaciones select {
+  min-width: 170px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+}
+
+.admin-filtros-notificaciones select option {
+  color: #111;
+}
+
+.admin-tabla-notificaciones {
+  min-width: 1350px;
+}
+
+.admin-estado-enviada {
+  display: inline-block;
+  padding: 5px 9px;
+  border: 1px solid #35bfc0;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-resumen-notificacion {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-resumen-notificacion > div {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.admin-resumen-notificacion span {
+  opacity: 0.7;
+  font-size: 0.86rem;
+}
+
+.admin-resumen-notificacion strong {
+  color: var(--text-h);
+}
+
+.admin-contenido-notificacion {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.admin-contenido-notificacion strong {
+  color: var(--text-h);
+  font-size: 1rem;
+}
+
+.admin-contenido-notificacion p {
+  margin-bottom: 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .admin-resumen-notificacion {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-resumen-notificacion {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filtros-notificaciones,
+  .admin-filtros-notificaciones select {
+    width: 100%;
+  }
+}

@@ -30,8 +30,12 @@ class PagoController extends Controller
 
         $consulta = Pago::query()
             ->with([
-                'venta',
                 'metodoPago',
+                'venta.cliente',
+                'venta.empleado',
+                'venta.funcion.pelicula',
+                'venta.funcion.sala',
+                'venta.funcion.formato',
             ]);
 
         if ($usuario->rol?->nombre === 'Cliente') {
@@ -51,7 +55,8 @@ class PagoController extends Controller
             ->get();
 
         return response()->json([
-            'message' => 'Pagos obtenidos correctamente.',
+            'message' =>
+                'Pagos obtenidos correctamente.',
             'data' => $pagos,
         ]);
     }
@@ -79,7 +84,8 @@ class PagoController extends Controller
         );
 
         return response()->json([
-            'message' => 'Pago registrado correctamente.',
+            'message' =>
+                'Pago registrado correctamente.',
             'data' => $pago,
         ], 201);
     }
@@ -103,9 +109,10 @@ class PagoController extends Controller
             );
 
         return response()->json([
-            'message' => $pagoConfirmado->estado === 'APROBADO'
-                ? 'Pago simulado aprobado correctamente.'
-                : 'Pago simulado rechazado correctamente.',
+            'message' =>
+                $pagoConfirmado->estado === 'APROBADO'
+                    ? 'Pago simulado aprobado correctamente.'
+                    : 'Pago simulado rechazado correctamente.',
             'data' => $pagoConfirmado,
         ]);
     }
@@ -118,12 +125,18 @@ class PagoController extends Controller
         Gate::authorize('view', $pago);
 
         $pago->load([
-            'venta.entradas',
             'metodoPago',
+            'venta.cliente',
+            'venta.empleado',
+            'venta.funcion.pelicula',
+            'venta.funcion.sala',
+            'venta.funcion.formato',
+            'venta.entradas.funcionAsiento.asiento',
         ]);
 
         return response()->json([
-            'message' => 'Pago obtenido correctamente.',
+            'message' =>
+                'Pago obtenido correctamente.',
             'data' => $pago,
         ]);
     }

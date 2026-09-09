@@ -182,6 +182,85 @@ class ReservaService
     }
 
     /**
+     * Cancela una reserva pendiente y libera sus asientos.
+     *
+     * @throws ValidationException
+     */
+    public function cancelar(
+        Reserva $reserva,
+        string $motivo
+    ): Reserva {
+        return DB::transaction(
+            function () use (
+                $reserva,
+                $motivo
+            ): Reserva {
+                $reserva = Reserva::query()
+                    ->with([
+                        'detalles.funcionAsiento',
+                    ])
+                    ->lockForUpdate()
+                    ->findOrFail($reserva->id);
+
+                if ($reserva->estado !== 'PENDIENTE') {
+                    throw ValidationException::withMessages([
+                        'reserva' => [
+                            'Solo se pueden cancelar reservas en estado PENDIENTE.',
+                        ],
+                    ]);
+                }
+
+                if ($reserva->venta()->exists()) {
+                    throw ValidationException::withMessages([
+                        'reserva' => [
+                            'La reserva ya fue convertida en una venta y no puede cancelarse.',
+                        ],
+                    ]);
+                }
+
+                foreach ($reserva->detalles as $detalle) {
+                    if ($detalle->estado === 'RESERVADO') {
+                        $detalle->update([
+                            'estado' => 'LIBERADO',
+                        ]);
+                    }
+
+                    $funcionAsiento =
+                        $detalle->funcionAsiento;
+
+                    if (
+                        $funcionAsiento
+                        && $funcionAsiento->estado === 'RESERVADO'
+                    ) {
+                        $funcionAsiento->update([
+                            'estado' => 'DISPONIBLE',
+                            'bloqueado_hasta' => null,
+                        ]);
+                    }
+                }
+
+                $reserva->update([
+                    'estado' => 'CANCELADA',
+                    'cancelada_en' => now(),
+                    'motivo_cancelacion' => trim($motivo),
+                ]);
+
+                return $reserva
+                    ->refresh()
+                    ->load([
+                        'usuario.rol',
+                        'funcion.pelicula',
+                        'funcion.sala',
+                        'funcion.formato',
+                        'detalles.funcionAsiento.asiento',
+                        'venta',
+                    ]);
+            },
+            3
+        );
+    }
+
+    /**
      * Verifica que los asientos existan, pertenezcan a la función
      * y se encuentren disponibles.
      */
