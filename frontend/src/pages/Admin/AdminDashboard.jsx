@@ -55,6 +55,11 @@ function AdminDashboard() {
       descripcion: 'Consultar las notificaciones del sistema.',
       ruta: '/admin/notificaciones',
     },
+    {
+      titulo: 'Reportes',
+      descripcion: 'Consultar estadísticas e indicadores administrativos.',
+      ruta: '/admin/reportes',
+    },
   ]
 
   const cerrarSesion = async () => {

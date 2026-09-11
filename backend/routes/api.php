@@ -10,13 +10,14 @@ use App\Http\Controllers\Api\GeneroController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\PeliculaController;
+use App\Http\Controllers\Api\ReporteController;
 use App\Http\Controllers\Api\ReservaController;
+use App\Http\Controllers\Api\RolController;
 use App\Http\Controllers\Api\SalaController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\UsuarioController;
 use App\Http\Controllers\Api\VentaController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\RolController;
-use App\Http\Controllers\Api\UsuarioController;
 
 /*
 |--------------------------------------------------------------------------
@@ -487,3 +488,17 @@ Route::get('/notificaciones/{notificacion}', [
     'auth:sanctum',
     'permiso:notificaciones.ver',
 ])->whereNumber('notificacion');
+
+/*
+|--------------------------------------------------------------------------
+| Reportes
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/reportes/resumen', [
+    ReporteController::class,
+    'resumen',
+])->middleware([
+    'auth:sanctum',
+    'permiso:reportes.ver',
+]);

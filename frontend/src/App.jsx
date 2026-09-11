@@ -17,6 +17,7 @@ import AdminFunciones from './pages/Admin/AdminFunciones'
 import AdminNotificaciones from './pages/Admin/AdminNotificaciones'
 import AdminPagos from './pages/Admin/AdminPagos'
 import AdminPeliculas from './pages/Admin/AdminPeliculas'
+import AdminReportes from './pages/Admin/AdminReportes'
 import AdminReservas from './pages/Admin/AdminReservas'
 import AdminSalas from './pages/Admin/AdminSalas'
 import AdminTickets from './pages/Admin/AdminTickets'
@@ -270,6 +271,15 @@ function App() {
         element={
           <RutaAdministrador>
             <AdminNotificaciones />
+          </RutaAdministrador>
+        }
+      />
+
+      <Route
+        path="/admin/reportes"
+        element={
+          <RutaAdministrador>
+            <AdminReportes />
           </RutaAdministrador>
         }
       />
