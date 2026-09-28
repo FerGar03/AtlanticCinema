@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Contracts\ProveedorFelInterface;
 use App\Contracts\ProveedorPagoInterface;
+use App\Services\Fel\DigifactFelService;
+use App\Services\Pagos\RecurrentePagoService;
 use App\Services\Pagos\SimuladorPagoService;
 use App\Services\Pagos\StripePagoService;
 use App\Services\SimuladorFelService;
@@ -18,14 +20,35 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(
             ProveedorFelInterface::class,
-            SimuladorFelService::class
+            match (
+                config(
+                    'services.fel.provider'
+                )
+            ) {
+                'digifact' =>
+                    DigifactFelService::class,
+
+                default =>
+                    SimuladorFelService::class,
+            }
         );
 
         $this->app->bind(
             ProveedorPagoInterface::class,
-            config('services.payments.provider') === 'stripe'
-                ? StripePagoService::class
-                : SimuladorPagoService::class
+            match (
+                config(
+                    'services.payments.provider'
+                )
+            ) {
+                'stripe' =>
+                    StripePagoService::class,
+
+                'recurrente' =>
+                    RecurrentePagoService::class,
+
+                default =>
+                    SimuladorPagoService::class,
+            }
         );
     }
 

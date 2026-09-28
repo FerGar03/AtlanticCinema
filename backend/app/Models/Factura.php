@@ -21,6 +21,7 @@ class Factura extends Model
         'descuento',
         'impuestos',
         'total',
+        'datos_proveedor',
         'estado',
         'certificada_en',
     ];
@@ -33,6 +34,7 @@ class Factura extends Model
             'descuento' => 'decimal:2',
             'impuestos' => 'decimal:2',
             'total' => 'decimal:2',
+            'datos_proveedor' => 'array',
             'certificada_en' => 'datetime',
         ];
     }

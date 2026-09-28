@@ -1,88 +1,314 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+
 import api from '../services/api'
 
 const AuthContext = createContext(null)
 
-export function AuthProvider({ children }) {
-  const [usuario, setUsuario] = useState(null)
-  const [cargando, setCargando] = useState(true)
+export function AuthProvider({
+  children,
+}) {
+  const [
+    usuario,
+    setUsuario,
+  ] = useState(null)
+
+  const [
+    cargando,
+    setCargando,
+  ] = useState(true)
+
+  const obtenerUsuario =
+    useCallback(
+      async () => {
+        const response =
+          await api.get(
+            '/auth/usuario'
+          )
+
+        const data =
+          response.data.data
+          ?? response.data
+
+        const usuarioAutenticado =
+          data.usuario
+          ?? data
+
+        setUsuario(
+          usuarioAutenticado
+        )
+
+        return usuarioAutenticado
+      },
+      []
+    )
 
   useEffect(() => {
-    const cargarUsuario = async () => {
-      const token = localStorage.getItem('token')
+    const cargarUsuario =
+      async () => {
+        const token =
+          localStorage.getItem(
+            'token'
+          )
 
-      if (!token || token === 'undefined') {
-        localStorage.removeItem('token')
-        setCargando(false)
-        return
+        if (
+          !token
+          || token === 'undefined'
+          || token === 'null'
+        ) {
+          localStorage.removeItem(
+            'token'
+          )
+
+          setUsuario(null)
+          setCargando(false)
+
+          return
+        }
+
+        try {
+          await obtenerUsuario()
+        } catch {
+          localStorage.removeItem(
+            'token'
+          )
+
+          setUsuario(null)
+        } finally {
+          setCargando(false)
+        }
       }
-
-      try {
-        const response = await api.get('/auth/usuario')
-
-        const data = response.data.data ?? response.data
-
-        setUsuario(data.usuario ?? data)
-      } catch {
-        localStorage.removeItem('token')
-        setUsuario(null)
-      } finally {
-        setCargando(false)
-      }
-    }
 
     cargarUsuario()
-  }, [])
+  }, [obtenerUsuario])
 
-  const login = async (credenciales) => {
-    const response = await api.post('/auth/login', credenciales)
+  const guardarSesion =
+    useCallback(
+      async (token) => {
+        if (
+          !token
+          || token === 'undefined'
+          || token === 'null'
+        ) {
+          throw new Error(
+            'No se recibió un token de autenticación válido.'
+          )
+        }
 
-    const data = response.data.data ?? response.data
+        localStorage.setItem(
+          'token',
+          token
+        )
 
-    const token = data.token
-    const usuarioAutenticado = data.usuario
+        try {
+          return await obtenerUsuario()
+        } catch (error) {
+          localStorage.removeItem(
+            'token'
+          )
 
-    localStorage.setItem('token', token)
-    setUsuario(usuarioAutenticado)
+          setUsuario(null)
 
-    return data
-  }
+          throw error
+        }
+      },
+      [obtenerUsuario]
+    )
 
-  const registro = async (datos) => {
-    const response = await api.post('/auth/registro', datos)
+  const login =
+    useCallback(
+      async (credenciales) => {
+        const response =
+          await api.post(
+            '/auth/login',
+            credenciales
+          )
 
-    const data = response.data.data ?? response.data
+        const data =
+          response.data.data
+          ?? response.data
 
-    const token = data.token
-    const usuarioRegistrado = data.usuario
+        const token =
+          data.token
 
-    localStorage.setItem('token', token)
-    setUsuario(usuarioRegistrado)
+        if (!token) {
+          throw new Error(
+            'No se recibió un token de autenticación válido.'
+          )
+        }
 
-    return data
-  }
+        localStorage.setItem(
+          'token',
+          token
+        )
 
-  const logout = async () => {
-    try {
-      await api.post('/auth/logout')
-    } finally {
-      localStorage.removeItem('token')
-      setUsuario(null)
-    }
-  }
+        setUsuario(
+          data.usuario
+        )
 
-  const autenticado = Boolean(usuario)
+        return data
+      },
+      []
+    )
 
-  return (
-    <AuthContext.Provider
-      value={{
+  const registro =
+    useCallback(
+      async (datos) => {
+        const response =
+          await api.post(
+            '/auth/registro',
+            datos
+          )
+
+        const data =
+          response.data.data
+          ?? response.data
+
+        const token =
+          data.token
+
+        if (!token) {
+          throw new Error(
+            'No se recibió un token de autenticación válido.'
+          )
+        }
+
+        localStorage.setItem(
+          'token',
+          token
+        )
+
+        setUsuario(
+          data.usuario
+        )
+
+        return data
+      },
+      []
+    )
+
+  const actualizarPerfil =
+    useCallback(
+      async (datos) => {
+        const response =
+          await api.patch(
+            '/auth/perfil',
+            datos
+          )
+
+        const data =
+          response.data.data
+          ?? response.data
+
+        setUsuario(data)
+
+        return data
+      },
+      []
+    )
+
+  const actualizarAvatar =
+    useCallback(
+      async (archivo) => {
+        const formulario =
+          new FormData()
+
+        formulario.append(
+          'avatar',
+          archivo
+        )
+
+        const response =
+          await api.post(
+            '/auth/perfil/avatar',
+            formulario
+          )
+
+        const data =
+          response.data.data
+          ?? response.data
+
+        setUsuario(data)
+
+        return data
+      },
+      []
+    )
+
+  const cambiarPassword =
+    useCallback(
+      async (datos) => {
+        const response =
+          await api.patch(
+            '/auth/password',
+            datos
+          )
+
+        return response.data
+      },
+      []
+    )
+
+  const logout =
+    useCallback(
+      async () => {
+        try {
+          await api.post(
+            '/auth/logout'
+          )
+        } finally {
+          localStorage.removeItem(
+            'token'
+          )
+
+          setUsuario(null)
+        }
+      },
+      []
+    )
+
+  const autenticado =
+    Boolean(usuario)
+
+  const valorContexto =
+    useMemo(
+      () => ({
         usuario,
         cargando,
         autenticado,
         login,
         registro,
+        guardarSesion,
+        obtenerUsuario,
+        actualizarPerfil,
+        actualizarAvatar,
+        cambiarPassword,
         logout,
-      }}
+      }),
+      [
+        usuario,
+        cargando,
+        autenticado,
+        login,
+        registro,
+        guardarSesion,
+        obtenerUsuario,
+        actualizarPerfil,
+        actualizarAvatar,
+        cambiarPassword,
+        logout,
+      ]
+    )
+
+  return (
+    <AuthContext.Provider
+      value={valorContexto}
     >
       {children}
     </AuthContext.Provider>
@@ -90,10 +316,13 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context =
+    useContext(AuthContext)
 
   if (!context) {
-    throw new Error('useAuth debe utilizarse dentro de AuthProvider')
+    throw new Error(
+      'useAuth debe utilizarse dentro de AuthProvider'
+    )
   }
 
   return context

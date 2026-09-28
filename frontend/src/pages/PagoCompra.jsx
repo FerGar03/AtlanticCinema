@@ -3,190 +3,642 @@ import {
   useMemo,
   useState,
 } from 'react'
+
 import {
   Link,
   useParams,
 } from 'react-router-dom'
+
 import api from '../services/api'
+import logoAtlantic from '../assets/branding/atlantic-cinema-logo.png'
 
 function PagoCompra() {
   const { ventaId } = useParams()
 
-  const [venta, setVenta] = useState(null)
-  const [pago, setPago] = useState(null)
+  const [venta, setVenta] =
+    useState(null)
 
-  const [cargando, setCargando] = useState(true)
-  const [iniciandoPago, setIniciandoPago] = useState(false)
-  const [confirmandoPago, setConfirmandoPago] = useState(false)
+  const [pago, setPago] =
+    useState(null)
 
-  const [error, setError] = useState('')
+  const [cargando, setCargando] =
+    useState(true)
+
+  const [
+    iniciandoPago,
+    setIniciandoPago,
+  ] = useState(false)
+
+  const [
+    confirmandoPago,
+    setConfirmandoPago,
+  ] = useState(false)
+
+  const [
+    tipoFacturacion,
+    setTipoFacturacion,
+  ] = useState('CF')
+
+  const [nit, setNit] =
+    useState('')
+
+  const [
+    verificandoNit,
+    setVerificandoNit,
+  ] = useState(false)
+
+  const [
+    nitVerificado,
+    setNitVerificado,
+  ] = useState(false)
+
+  const [
+    nitVerificadoValor,
+    setNitVerificadoValor,
+  ] = useState('')
+
+  const [
+    nombreFacturacion,
+    setNombreFacturacion,
+  ] = useState(
+    'Consumidor Final'
+  )
+
+  const [
+    numeroCopiado,
+    setNumeroCopiado,
+  ] = useState(false)
+
+  const [error, setError] =
+    useState('')
 
   useEffect(() => {
-    const cargarVenta = async () => {
-      try {
-        const response = await api.get(
-          `/ventas/${ventaId}`,
-        )
+    const cargarVenta =
+      async () => {
+        try {
+          const response =
+            await api.get(
+              `/ventas/${ventaId}`
+            )
 
-        const data =
-          response.data.data ??
-          response.data
+          const data =
+            response.data.data
+            ?? response.data
 
-        setVenta(data)
-      } catch (err) {
-        setError(
-          err.response?.data?.message ||
-            'No fue posible cargar la compra.',
-        )
-      } finally {
-        setCargando(false)
+          setVenta(data)
+
+          if (
+            data.nit_facturacion
+            && data.nit_facturacion
+            !== 'CF'
+          ) {
+            setTipoFacturacion(
+              'NIT'
+            )
+
+            setNit(
+              data.nit_facturacion
+            )
+
+            setNitVerificadoValor(
+              data.nit_facturacion
+            )
+
+            setNitVerificado(true)
+
+            setNombreFacturacion(
+              data.nombre_facturacion
+              ?? ''
+            )
+          } else {
+            setTipoFacturacion(
+              'CF'
+            )
+
+            setNombreFacturacion(
+              'Consumidor Final'
+            )
+          }
+        } catch (err) {
+          setError(
+            err.response
+              ?.data
+              ?.message
+            || 'No fue posible cargar la compra.'
+          )
+        } finally {
+          setCargando(false)
+        }
       }
-    }
 
     cargarVenta()
   }, [ventaId])
 
-  const asientos = useMemo(() => {
-    if (!venta?.entradas) {
-      return []
-    }
+  const asientos =
+    useMemo(() => {
+      if (!venta?.entradas) {
+        return []
+      }
 
-    return venta.entradas
-      .map((entrada) => {
-        const asiento =
-          entrada.funcion_asiento?.asiento ??
-          entrada.funcionAsiento?.asiento
+      return venta.entradas
+        .map((entrada) => {
+          const asiento =
+            entrada.funcion_asiento
+              ?.asiento
+            ?? entrada.funcionAsiento
+              ?.asiento
 
-        if (!asiento) {
-          return null
-        }
+          if (!asiento) {
+            return null
+          }
 
-        return `${asiento.fila}${asiento.numero}`
-      })
-      .filter(Boolean)
-  }, [venta])
+          return `${asiento.fila}${asiento.numero}`
+        })
+        .filter(Boolean)
+    }, [venta])
 
   const obtenerMensajeError = (
     err,
-    mensajePredeterminado,
+    mensajePredeterminado
   ) => {
     const errores =
-      err.response?.data?.errors
+      err.response
+        ?.data
+        ?.errors
 
     if (errores) {
-      return Object.values(errores)
+      return Object
+        .values(errores)
         .flat()
         .join(' ')
     }
 
     return (
-      err.response?.data?.message ||
-      mensajePredeterminado
+      err.response
+        ?.data
+        ?.message
+      || mensajePredeterminado
     )
   }
 
-  const iniciarPago = async () => {
-    setError('')
-    setIniciandoPago(true)
-
-    try {
-      const response = await api.post(
-        '/pagos',
-        {
-          venta_id: Number(ventaId),
-          metodo_pago_id: 2,
-          descripcion:
-            'Pago con tarjeta iniciado desde compra web.',
-        },
-      )
-
-      const data =
-        response.data.data ??
-        response.data
-
-      setPago(data)
-    } catch (err) {
-      setError(
-        obtenerMensajeError(
-          err,
-          'No fue posible iniciar el pago con tarjeta.',
-        ),
-      )
-    } finally {
-      setIniciandoPago(false)
+  const formatearNombreFiscal = (
+    nombre
+  ) => {
+    if (!nombre) {
+      return ''
     }
+
+    const partes =
+      String(nombre)
+        .split(',')
+
+    if (
+      partes.length >= 5
+      && partes[3]?.trim()
+    ) {
+      return [
+        partes[3],
+        partes[4],
+        partes[0],
+        partes[1],
+      ]
+        .map(
+          (parte) =>
+            parte?.trim()
+        )
+        .filter(Boolean)
+        .join(' ')
+    }
+
+    return String(nombre)
+      .replaceAll(',', ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
   }
 
-  const confirmarPago = async (
-    resultado,
+  const cambiarTipoFacturacion = (
+    tipo
   ) => {
-    if (!pago) {
+    setTipoFacturacion(
+      tipo
+    )
+
+    setError('')
+
+    if (tipo === 'CF') {
+      setNit('')
+      setNitVerificado(false)
+      setNitVerificadoValor('')
+
+      setNombreFacturacion(
+        'Consumidor Final'
+      )
+
       return
     }
 
-    setError('')
-    setConfirmandoPago(true)
+    setNitVerificado(false)
+    setNitVerificadoValor('')
+    setNombreFacturacion('')
+  }
 
-    try {
-      const response = await api.post(
-        `/pagos/${pago.id}/confirmar-simulacion`,
-        {
-          resultado,
-        },
-      )
+  const cambiarNit = (
+    event
+  ) => {
+    const valor =
+      event.target.value
+        .replace(/\s+/g, '')
+        .toUpperCase()
+
+    setNit(valor)
+
+    if (
+      valor
+      !== nitVerificadoValor
+    ) {
+      setNitVerificado(false)
+      setNombreFacturacion('')
+    }
+  }
+
+  const verificarNit =
+    async () => {
+      if (!nit.trim()) {
+        setError(
+          'Ingresa un NIT para verificarlo.'
+        )
+
+        return
+      }
+
+      setError('')
+      setVerificandoNit(true)
+
+      try {
+        const response =
+          await api.patch(
+            `/ventas/${ventaId}/facturacion`,
+            {
+              tipo_facturacion:
+                'NIT',
+
+              nit:
+                nit.trim(),
+            }
+          )
+
+        const data =
+          response.data.data
+          ?? response.data
+
+        const nitConfirmado =
+          data.nit_facturacion
+          ?? nit.trim()
+
+        const nombre =
+          data.nombre_facturacion
+          ?? ''
+
+        setVenta(data)
+
+        setNit(
+          nitConfirmado
+        )
+
+        setNitVerificadoValor(
+          nitConfirmado
+        )
+
+        setNombreFacturacion(
+          nombre
+        )
+
+        setNitVerificado(true)
+      } catch (err) {
+        setNitVerificado(false)
+        setNitVerificadoValor('')
+        setNombreFacturacion('')
+
+        setError(
+          obtenerMensajeError(
+            err,
+            'No fue posible verificar el NIT.'
+          )
+        )
+      } finally {
+        setVerificandoNit(false)
+      }
+    }
+
+  const configurarConsumidorFinal =
+    async () => {
+      const response =
+        await api.patch(
+          `/ventas/${ventaId}/facturacion`,
+          {
+            tipo_facturacion:
+              'CF',
+          }
+        )
 
       const data =
-        response.data.data ??
-        response.data
+        response.data.data
+        ?? response.data
 
-      setPago(data)
+      setVenta(data)
 
-      if (resultado === 'APROBADO') {
-        setVenta((actual) => ({
-          ...actual,
-          estado: 'PAGADA',
-          pagada_en:
-            data.venta?.pagada_en ??
-            new Date().toISOString(),
-        }))
-      } else {
-        setVenta((actual) => ({
-          ...actual,
-          estado: 'FALLIDA',
-        }))
-      }
-    } catch (err) {
-      setError(
-        obtenerMensajeError(
-          err,
-          'No fue posible confirmar el pago.',
-        ),
+      setNombreFacturacion(
+        'Consumidor Final'
       )
-    } finally {
-      setConfirmandoPago(false)
+
+      return data
+    }
+
+  const iniciarPago =
+    async () => {
+      setError('')
+      setIniciandoPago(true)
+
+      try {
+        if (
+          tipoFacturacion
+          === 'NIT'
+        ) {
+          if (!nit.trim()) {
+            throw new Error(
+              'Ingresa el NIT para la factura.'
+            )
+          }
+
+          if (
+            !nitVerificado
+            || nit.trim()
+              !== nitVerificadoValor
+          ) {
+            throw new Error(
+              'Debes verificar el NIT antes de continuar con el pago.'
+            )
+          }
+        } else {
+          await configurarConsumidorFinal()
+        }
+
+        const response =
+          await api.post(
+            '/pagos',
+            {
+              venta_id:
+                Number(ventaId),
+
+              metodo_pago_id:
+                2,
+
+              descripcion:
+                'Pago con tarjeta iniciado desde compra web.',
+            }
+          )
+
+        const data =
+          response.data.data
+          ?? response.data
+
+        setPago(data)
+
+        if (
+          data.proveedor
+          === 'RECURRENTE'
+        ) {
+          if (
+            !data.client_secret
+          ) {
+            throw new Error(
+              'Recurrente no devolvió la URL del checkout.'
+            )
+          }
+
+          sessionStorage.setItem(
+            'atlanticCinemaVentaPago',
+            String(ventaId)
+          )
+
+          window.location.href =
+            data.client_secret
+
+          return
+        }
+      } catch (err) {
+        if (err.response) {
+          setError(
+            obtenerMensajeError(
+              err,
+              'No fue posible iniciar el pago con tarjeta.'
+            )
+          )
+        } else {
+          setError(
+            err.message
+            || 'No fue posible iniciar el pago con tarjeta.'
+          )
+        }
+      } finally {
+        setIniciandoPago(false)
+      }
+    }
+
+  const confirmarPago =
+    async (
+      resultado
+    ) => {
+      if (!pago) {
+        return
+      }
+
+      setError('')
+      setConfirmandoPago(true)
+
+      try {
+        const response =
+          await api.post(
+            `/pagos/${pago.id}/confirmar-simulacion`,
+            {
+              resultado,
+            }
+          )
+
+        const data =
+          response.data.data
+          ?? response.data
+
+        setPago(data)
+
+        if (
+          resultado
+          === 'APROBADO'
+        ) {
+          setVenta(
+            (actual) => ({
+              ...actual,
+
+              estado:
+                'PAGADA',
+
+              pagada_en:
+                data.venta
+                  ?.pagada_en
+                ?? new Date()
+                  .toISOString(),
+            })
+          )
+        } else {
+          setVenta(
+            (actual) => ({
+              ...actual,
+
+              estado:
+                'FALLIDA',
+            })
+          )
+        }
+      } catch (err) {
+        setError(
+          obtenerMensajeError(
+            err,
+            'No fue posible confirmar el pago.'
+          )
+        )
+      } finally {
+        setConfirmandoPago(false)
+      }
+    }
+
+  const copiarNumeroVenta =
+    async () => {
+      if (!venta?.numero_venta) {
+        return
+      }
+
+      try {
+        await navigator.clipboard.writeText(
+          venta.numero_venta
+        )
+
+        setNumeroCopiado(true)
+
+        window.setTimeout(
+          () => {
+            setNumeroCopiado(false)
+          },
+          2200
+        )
+      } catch {
+        setNumeroCopiado(false)
+      }
+    }
+
+  const formatearFecha = (
+    fecha
+  ) => {
+    if (!fecha) {
+      return 'No disponible'
+    }
+
+    return new Intl
+      .DateTimeFormat(
+        'es-GT',
+        {
+          timeZone:
+            'America/Guatemala',
+
+          weekday:
+            'long',
+
+          day:
+            'numeric',
+
+          month:
+            'long',
+
+          year:
+            'numeric',
+
+          hour:
+            'numeric',
+
+          minute:
+            '2-digit',
+
+          hour12:
+            true,
+        }
+      )
+      .format(
+        new Date(fecha)
+      )
+  }
+
+  const obtenerClaseEstado = (
+    estado
+  ) => {
+    switch (estado) {
+      case 'PENDIENTE':
+        return 'pago-estado pago-estado-pendiente'
+
+      case 'PAGADA':
+        return 'pago-estado pago-estado-pagada'
+
+      case 'FALLIDA':
+        return 'pago-estado pago-estado-fallida'
+
+      case 'CANCELADA':
+        return 'pago-estado pago-estado-cancelada'
+
+      default:
+        return 'pago-estado'
     }
   }
 
   if (cargando) {
     return (
-      <main className="pago-compra">
-        <p>Cargando compra...</p>
+      <main className="pago-pagina-cargando">
+        <div className="cartelera-spinner" />
+
+        <p>
+          Preparando tu compra...
+        </p>
       </main>
     )
   }
 
-  if (error && !venta) {
+  if (
+    error
+    && !venta
+  ) {
     return (
-      <main className="pago-compra">
-        <h1>Atlantic Cinema</h1>
+      <main className="pago-error-pagina">
+        <section className="pago-error-card">
+          <div className="pago-error-icono">
+            !
+          </div>
 
-        <p className="mensaje-error">
-          {error}
-        </p>
+          <span className="pago-etiqueta">
+            COMPRA
+          </span>
 
-        <Link to="/">
-          Volver a cartelera
-        </Link>
+          <h1>
+            No pudimos cargar tu compra
+          </h1>
+
+          <p>
+            {error}
+          </p>
+
+          <Link
+            to="/"
+            className="pago-boton-principal"
+          >
+            Volver a la cartelera
+          </Link>
+        </section>
       </main>
     )
   }
@@ -195,255 +647,744 @@ function PagoCompra() {
     return null
   }
 
+  const funcion =
+    venta.funcion
+
+  const pelicula =
+    funcion?.pelicula
+
+  const sala =
+    funcion?.sala
+
+  const formato =
+    funcion?.formato
+
+  const pagoPendiente =
+    pago?.estado
+    === 'PENDIENTE'
+
+  const puedePagarConNit =
+    tipoFacturacion
+    !== 'NIT'
+    || (
+      nitVerificado
+      && nit.trim()
+        === nitVerificadoValor
+    )
+
+  const imagenPelicula =
+    pelicula?.imagen_url
+
   return (
-    <main className="pago-compra">
-      <Link to="/">
-        ← Volver a cartelera
-      </Link>
+    <main className="pago-compra-pagina">
+      <header className="pago-navbar">
+        <Link
+          to="/"
+          className="cartelera-marca"
+        >
+          <div className="pago-logo-contenedor">
+            <img
+              src={logoAtlantic}
+              alt="Atlantic Cinema"
+              className="pago-logo-imagen"
+            />
+          </div>
 
-      <h1>Atlantic Cinema</h1>
+          <div>
+            <strong>
+              Atlantic Cinema
+            </strong>
 
-      <section className="tarjeta-pago-compra">
-        <p className="compra-etiqueta">
-          COMPRA WEB
-        </p>
+            <small>
+              Vive la experiencia
+            </small>
+          </div>
+        </Link>
 
-        <h2>
-          {venta.funcion?.pelicula?.titulo ??
-            'Película'}
-        </h2>
+        <Link
+          to="/"
+          className="pago-volver"
+        >
+          ← Volver a cartelera
+        </Link>
+      </header>
 
-        <p>
-          <strong>Venta:</strong>{' '}
-          {venta.numero_venta}
-        </p>
+      <section className="pago-compra-contenido-nuevo">
+        <div className="pago-compra-cabecera">
+          <div>
+            <span className="pago-etiqueta">
+              COMPLETAR COMPRA
+            </span>
 
-        <p>
-          <strong>Estado:</strong>{' '}
-          {venta.estado}
-        </p>
+            <h1>
+              {venta.estado
+                === 'PAGADA'
+                ? 'Compra completada'
+                : 'Revisa tu compra'}
+            </h1>
 
-        <hr />
+            <p>
+              {venta.estado
+                === 'PAGADA'
+                ? 'Tu pago fue confirmado correctamente.'
+                : 'Verifica los datos antes de continuar al pago seguro.'}
+            </p>
+          </div>
 
-        <p>
-          <strong>Sala:</strong>{' '}
-          {venta.funcion?.sala?.nombre ??
-            'No disponible'}
-        </p>
-
-        <p>
-          <strong>Formato:</strong>{' '}
-          {venta.funcion?.formato?.nombre ??
-            'No disponible'}
-        </p>
-
-        <p>
-          <strong>Asientos:</strong>{' '}
-          {asientos.length > 0
-            ? asientos.join(', ')
-            : 'No disponibles'}
-        </p>
-
-        <p>
-          <strong>Entradas:</strong>{' '}
-          {venta.entradas?.length ?? 0}
-        </p>
-
-        <hr />
-
-        <p>
-          <strong>Subtotal:</strong>{' '}
-          Q
-          {Number(
-            venta.subtotal,
-          ).toFixed(2)}
-        </p>
-
-        <p>
-          <strong>Descuento:</strong>{' '}
-          Q
-          {Number(
-            venta.descuento,
-          ).toFixed(2)}
-        </p>
-
-        <p className="total-compra">
-          <strong>Total:</strong>{' '}
-          Q
-          {Number(
-            venta.total,
-          ).toFixed(2)}
-        </p>
+          <span
+            className={
+              obtenerClaseEstado(
+                venta.estado
+              )
+            }
+          >
+            {venta.estado}
+          </span>
+        </div>
 
         {error && (
-          <p className="mensaje-error">
+          <div className="pago-mensaje-error">
             {error}
-          </p>
+          </div>
         )}
 
-        {venta.estado === 'PENDIENTE' &&
-          !pago && (
-            <section className="seccion-pago-tarjeta">
-              <h3>Pago con tarjeta</h3>
+        <div className="pago-layout">
+          <section className="pago-resumen-card">
+            <div className="pago-numero-venta pago-numero-venta-final">
+              <div>
+                <span>
+                  NÚMERO DE VENTA
+                </span>
 
-              <p>
-                Los asientos permanecerán
-                bloqueados mientras completas
-                el pago.
-              </p>
-
-              <p>
-                Para esta etapa del proyecto
-                utilizaremos el proveedor de
-                pago simulado.
-              </p>
+                <strong>
+                  {venta.numero_venta}
+                </strong>
+              </div>
 
               <button
                 type="button"
-                onClick={iniciarPago}
-                disabled={iniciandoPago}
-              >
-                {iniciandoPago
-                  ? 'Iniciando pago...'
-                  : 'Pagar con tarjeta'}
-              </button>
-            </section>
-          )}
-
-        {pago?.estado === 'PENDIENTE' && (
-          <section className="simulador-pago">
-            <h3>
-              Simulador de tarjeta
-            </h3>
-
-            <p>
-              Pago #{pago.id}
-            </p>
-
-            <p>
-              <strong>Monto:</strong>{' '}
-              Q
-              {Number(
-                pago.monto,
-              ).toFixed(2)}
-            </p>
-
-            <p>
-              Selecciona el resultado para
-              simular la respuesta de la
-              pasarela.
-            </p>
-
-            <div className="acciones-simulador">
-              <button
-                type="button"
-                onClick={() =>
-                  confirmarPago(
-                    'APROBADO',
-                  )
-                }
-                disabled={
-                  confirmandoPago
+                className="pago-copiar-numero"
+                onClick={
+                  copiarNumeroVenta
                 }
               >
-                Aprobar pago
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  confirmarPago(
-                    'RECHAZADO',
-                  )
-                }
-                disabled={
-                  confirmandoPago
-                }
-              >
-                Rechazar pago
+                {numeroCopiado
+                  ? '✓ Copiado'
+                  : 'Copiar número'}
               </button>
             </div>
+
+            <div className="pago-pelicula-bloque pago-pelicula-final">
+              {imagenPelicula && (
+                <>
+                  <img
+                    src={
+                      imagenPelicula
+                    }
+                    alt=""
+                    className="pago-pelicula-fondo"
+                  />
+
+                  <div className="pago-pelicula-overlay" />
+                </>
+              )}
+
+              <div className="pago-pelicula-contenido">
+                <span>
+                  PELÍCULA
+                </span>
+
+                <h2>
+                  {pelicula?.titulo
+                    ?? 'Película'}
+                </h2>
+              </div>
+            </div>
+
+            <div className="pago-datos-grid">
+              <div>
+                <span>
+                  Sala
+                </span>
+
+                <strong>
+                  {sala?.nombre
+                    ?? 'No disponible'}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Formato
+                </span>
+
+                <strong>
+                  {formato?.nombre
+                    ?? 'No disponible'}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Función
+                </span>
+
+                <strong>
+                  {formatearFecha(
+                    funcion?.inicia_en
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Entradas
+                </span>
+
+                <strong>
+                  {
+                    venta.entradas
+                      ?.length
+                    ?? 0
+                  }
+                </strong>
+              </div>
+            </div>
+
+            <div className="pago-asientos-seccion">
+              <div className="pago-seccion-titulo">
+                <span>
+                  Asientos
+                </span>
+
+                <strong>
+                  {asientos.length}
+                </strong>
+              </div>
+
+              {asientos.length > 0 ? (
+                <div className="pago-asientos-lista">
+                  {asientos.map(
+                    (asiento) => (
+                      <span
+                        key={asiento}
+                      >
+                        {asiento}
+                      </span>
+                    )
+                  )}
+                </div>
+              ) : (
+                <p>
+                  Sin información de
+                  asientos.
+                </p>
+              )}
+            </div>
+
+            {venta.estado ===
+              'PENDIENTE' && (
+                <div className="pago-bloqueo-aviso">
+                  <strong>
+                    Asientos retenidos
+                    temporalmente
+                  </strong>
+
+                  <p>
+                    Mientras completas el
+                    pago, otros usuarios no
+                    podrán seleccionar estos
+                    asientos.
+                  </p>
+                </div>
+              )}
           </section>
-        )}
 
-        {pago?.estado === 'APROBADO' && (
-          <section className="pago-exitoso">
-            <h3>
-              ¡Pago aprobado!
-            </h3>
+          <aside className="pago-panel">
+            <span className="pago-etiqueta">
+              RESUMEN
+            </span>
 
-            <p>
-              La compra fue realizada
-              correctamente.
-            </p>
+            <h2>
+              {venta.estado
+                === 'PAGADA'
+                ? 'Compra confirmada'
+                : 'Total a pagar'}
+            </h2>
 
-            <p>
-              <strong>Venta:</strong>{' '}
-              {venta.numero_venta}
-            </p>
+            <div className="pago-total pago-total-final">
+              <span>
+                Total
+              </span>
 
-            <p>
-              <strong>Total pagado:</strong>{' '}
-              Q
-              {Number(
-                venta.total,
-              ).toFixed(2)}
-            </p>
+              <strong>
+                Q
+                {Number(
+                  venta.total ?? 0
+                ).toFixed(2)}
+              </strong>
+            </div>
 
-            <p>
-              Tus entradas ya se encuentran
-              válidas.
-            </p>
+            {venta.estado ===
+              'PENDIENTE' && (
+                <>
+                  {!pago && (
+                    <section className="pago-facturacion">
+                      <div className="pago-facturacion-cabecera">
+                        <strong>
+                          Datos de facturación
+                        </strong>
 
-            <Link to="/">
-              Volver a cartelera
-            </Link>
-          </section>
-        )}
+                        <span>
+                          Selecciona cómo deseas
+                          emitir tu factura FEL.
+                        </span>
+                      </div>
 
-        {pago?.estado === 'RECHAZADO' && (
-          <section className="pago-rechazado">
-            <h3>
-              Pago rechazado
-            </h3>
+                      <label
+                        className={`pago-facturacion-opcion ${
+                          tipoFacturacion
+                          === 'CF'
+                            ? 'pago-facturacion-opcion-activa'
+                            : ''
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="tipoFacturacion"
+                          value="CF"
+                          checked={
+                            tipoFacturacion
+                            === 'CF'
+                          }
+                          onChange={() =>
+                            cambiarTipoFacturacion(
+                              'CF'
+                            )
+                          }
+                        />
 
-            <p>
-              La compra no pudo completarse.
-            </p>
+                        <div>
+                          <strong>
+                            Consumidor Final
+                          </strong>
 
-            <p>
-              Los asientos seleccionados
-              fueron liberados.
-            </p>
+                          <small>
+                            La factura se emitirá
+                            con NIT CF.
+                          </small>
+                        </div>
+                      </label>
 
-            <Link to="/">
-              Volver a cartelera
-            </Link>
-          </section>
-        )}
+                      <label
+                        className={`pago-facturacion-opcion ${
+                          tipoFacturacion
+                          === 'NIT'
+                            ? 'pago-facturacion-opcion-activa'
+                            : ''
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="tipoFacturacion"
+                          value="NIT"
+                          checked={
+                            tipoFacturacion
+                            === 'NIT'
+                          }
+                          onChange={() =>
+                            cambiarTipoFacturacion(
+                              'NIT'
+                            )
+                          }
+                        />
 
-        {venta.estado === 'CANCELADA' && (
-          <section className="pago-rechazado">
-            <h3>
-              Compra vencida
-            </h3>
+                        <div>
+                          <strong>
+                            Factura con NIT
+                          </strong>
 
-            <p>
-              El tiempo disponible para
-              completar el pago finalizó.
-            </p>
+                          <small>
+                            Digifact verificará
+                            automáticamente tus
+                            datos fiscales.
+                          </small>
+                        </div>
+                      </label>
 
-            <p>
-              Los asientos fueron liberados
-              automáticamente.
-            </p>
+                      {tipoFacturacion ===
+                        'NIT' && (
+                          <div className="pago-facturacion-nit">
+                            <label
+                              htmlFor="nitFacturacion"
+                            >
+                              NIT
+                            </label>
 
-            <Link to="/">
-              Realizar una nueva compra
-            </Link>
-          </section>
-        )}
+                            <div className="pago-facturacion-nit-fila">
+                              <input
+                                id="nitFacturacion"
+                                type="text"
+                                value={nit}
+                                onChange={
+                                  cambiarNit
+                                }
+                                placeholder="Ej. 110666992"
+                                autoComplete="off"
+                                disabled={
+                                  verificandoNit
+                                  || iniciandoPago
+                                }
+                              />
+
+                              <button
+                                type="button"
+                                onClick={
+                                  verificarNit
+                                }
+                                disabled={
+                                  verificandoNit
+                                  || iniciandoPago
+                                  || !nit.trim()
+                                }
+                              >
+                                {verificandoNit
+                                  ? 'Verificando...'
+                                  : 'Verificar NIT'}
+                              </button>
+                            </div>
+
+                            {nitVerificado && (
+                              <div className="pago-nit-verificado">
+                                <strong>
+                                  ✓ NIT verificado
+                                </strong>
+
+                                <span>
+                                  {
+                                    formatearNombreFiscal(
+                                      nombreFacturacion
+                                    )
+                                  }
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                      {tipoFacturacion ===
+                        'CF' && (
+                          <div className="pago-nit-verificado">
+                            <strong>
+                              Consumidor Final
+                            </strong>
+
+                            <span>
+                              NIT CF · Consumidor Final
+                            </span>
+                          </div>
+                        )}
+                    </section>
+                  )}
+
+                  <section className="pago-metodo pago-metodo-final">
+                    {!pago && (
+                      <>
+                        <div className="pago-metodo-cabecera">
+                          <div className="pago-tarjeta-icono pago-tarjeta-icono-final">
+                            <span>
+                              ▰
+                            </span>
+                          </div>
+
+                          <div>
+                            <strong>
+                              Pago con tarjeta
+                            </strong>
+
+                            <span>
+                              Procesado de forma
+                              segura por Recurrente
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pago-proveedor">
+                          <div>
+                            <span>
+                              PROVEEDOR DE PAGO
+                            </span>
+
+                            <strong>
+                              Recurrente
+                            </strong>
+                          </div>
+
+                          <span className="pago-proveedor-seguro">
+                            Pago seguro
+                          </span>
+                        </div>
+
+                        <div className="pago-seguridad">
+                          <strong>
+                            Tus datos están protegidos
+                          </strong>
+
+                          <p>
+                            Atlantic Cinema no
+                            almacena los datos de
+                            tu tarjeta. Serás
+                            redirigido a Recurrente
+                            para completar la
+                            transacción.
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="pago-boton-principal pago-boton-pagar-final"
+                          onClick={
+                            iniciarPago
+                          }
+                          disabled={
+                            iniciandoPago
+                            || verificandoNit
+                            || !puedePagarConNit
+                          }
+                        >
+                          {iniciandoPago
+                            ? 'Conectando con Recurrente...'
+                            : `Pagar Q${Number(
+                                venta.total
+                                ?? 0
+                              ).toFixed(2)}`
+                          }
+                        </button>
+
+                        {tipoFacturacion ===
+                          'NIT'
+                          && !nitVerificado && (
+                            <small className="pago-nota">
+                              Verifica el NIT antes
+                              de continuar con el
+                              pago.
+                            </small>
+                          )}
+                      </>
+                    )}
+
+                    {pago && (
+                      <div className="pago-intento">
+                        <span>
+                          INTENTO DE PAGO
+                        </span>
+
+                        <div>
+                          <small>
+                            Proveedor
+                          </small>
+
+                          <strong>
+                            {pago.proveedor}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <small>
+                            Estado
+                          </small>
+
+                          <strong>
+                            {pago.estado}
+                          </strong>
+                        </div>
+
+                        {pago
+                          .referencia_proveedor && (
+                            <div>
+                              <small>
+                                Referencia
+                              </small>
+
+                              <strong className="pago-referencia">
+                                {
+                                  pago
+                                    .referencia_proveedor
+                                }
+                              </strong>
+                            </div>
+                          )}
+                      </div>
+                    )}
+
+                    {pago?.proveedor ===
+                      'SIMULADOR'
+                      && pagoPendiente && (
+                        <div className="pago-simulador">
+                          <span>
+                            MODO DE PRUEBA
+                          </span>
+
+                          <p>
+                            Selecciona el resultado
+                            que deseas simular.
+                          </p>
+
+                          <button
+                            type="button"
+                            className="pago-simulador-aprobar"
+                            onClick={() =>
+                              confirmarPago(
+                                'APROBADO'
+                              )
+                            }
+                            disabled={
+                              confirmandoPago
+                            }
+                          >
+                            {confirmandoPago
+                              ? 'Procesando...'
+                              : 'Simular aprobado'}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="pago-simulador-rechazar"
+                            onClick={() =>
+                              confirmarPago(
+                                'RECHAZADO'
+                              )
+                            }
+                            disabled={
+                              confirmandoPago
+                            }
+                          >
+                            {confirmandoPago
+                              ? 'Procesando...'
+                              : 'Simular rechazado'}
+                          </button>
+                        </div>
+                      )}
+                  </section>
+                </>
+              )}
+
+            {venta.estado ===
+              'PAGADA' && (
+                <div className="pago-resultado-estado pago-resultado-pagada pago-resultado-final">
+                  <div className="pago-resultado-icono">
+                    ✓
+                  </div>
+
+                  <strong>
+                    Compra pagada
+                  </strong>
+
+                  <p>
+                    El pago fue confirmado
+                    correctamente. Tus documentos
+                    electrónicos serán asociados
+                    a esta compra.
+                  </p>
+
+                  <div className="pago-resultado-acciones">
+                    <Link
+                      to="/mis-operaciones"
+                      className="pago-boton-principal"
+                    >
+                      Ver mis compras
+                    </Link>
+
+                    <Link
+                      to="/"
+                      className="pago-boton-secundario"
+                    >
+                      Volver a cartelera
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+            {venta.estado ===
+              'FALLIDA' && (
+                <div className="pago-resultado-estado pago-resultado-fallida">
+                  <strong>
+                    Pago no completado
+                  </strong>
+
+                  <p>
+                    La compra no pudo ser
+                    completada.
+                  </p>
+
+                  <Link
+                    to="/"
+                    className="pago-boton-secundario"
+                  >
+                    Volver a cartelera
+                  </Link>
+                </div>
+              )}
+
+            {venta.estado ===
+              'CANCELADA' && (
+                <div className="pago-resultado-estado pago-resultado-fallida">
+                  <strong>
+                    Compra cancelada
+                  </strong>
+
+                  <p>
+                    Esta compra ya no está
+                    disponible para recibir
+                    pagos.
+                  </p>
+
+                  <Link
+                    to="/"
+                    className="pago-boton-secundario"
+                  >
+                    Volver a cartelera
+                  </Link>
+                </div>
+              )}
+
+            {venta.estado ===
+              'PENDIENTE' && (
+                <small className="pago-nota">
+                  No cierres la ventana durante
+                  el proceso de redirección al
+                  proveedor de pagos.
+                </small>
+              )}
+          </aside>
+        </div>
       </section>
+
+      <footer className="cartelera-footer">
+        <div className="cartelera-footer-marca">
+          <div className="pago-logo-contenedor pago-logo-footer">
+            <img
+              src={logoAtlantic}
+              alt="Atlantic Cinema"
+              className="pago-logo-imagen"
+            />
+          </div>
+
+          <div>
+            <strong>
+              Atlantic Cinema
+            </strong>
+
+            <span>
+              Tu cine, tu experiencia.
+            </span>
+          </div>
+        </div>
+
+        <small>
+          © 2026 Atlantic Cinema
+        </small>
+      </footer>
     </main>
   )
 }

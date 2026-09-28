@@ -21,6 +21,8 @@ class Venta extends Model
         'subtotal',
         'descuento',
         'total',
+        'nit_facturacion',
+        'nombre_facturacion',
         'estado',
         'realizada_en',
         'pagada_en',
@@ -46,41 +48,60 @@ class Venta extends Model
 
     public function cliente(): BelongsTo
     {
-        return $this->belongsTo(Usuario::class, 'cliente_id');
+        return $this->belongsTo(
+            Usuario::class,
+            'cliente_id'
+        );
     }
 
     public function empleado(): BelongsTo
     {
-        return $this->belongsTo(Usuario::class, 'empleado_id');
+        return $this->belongsTo(
+            Usuario::class,
+            'empleado_id'
+        );
     }
 
     public function reserva(): BelongsTo
     {
-        return $this->belongsTo(Reserva::class);
+        return $this->belongsTo(
+            Reserva::class
+        );
     }
 
     public function funcion(): BelongsTo
     {
-        return $this->belongsTo(Funcion::class);
+        return $this->belongsTo(
+            Funcion::class
+        );
     }
 
     public function entradas(): HasMany
     {
-        return $this->hasMany(Entrada::class);
+        return $this->hasMany(
+            Entrada::class
+        );
     }
 
     public function pagos(): HasMany
     {
-        return $this->hasMany(Pago::class, 'venta_id');
+        return $this->hasMany(
+            Pago::class,
+            'venta_id'
+        );
     }
 
     public function factura(): HasOne
     {
-        return $this->hasOne(Factura::class);
+        return $this->hasOne(
+            Factura::class
+        );
     }
 
     public function notificaciones(): HasMany
     {
-        return $this->hasMany(Notificacion::class);
+        return $this->hasMany(
+            Notificacion::class
+        );
     }
 }

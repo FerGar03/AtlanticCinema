@@ -1,8 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import {
+  useEffect,
+  useState,
+} from 'react'
 
-import { useAuth } from '../../context/AuthContext'
+import {
+  useAuth,
+} from '../../context/AuthContext'
+
 import api from '../../services/api'
+
+import AdminSidebar
+  from '../../components/Admin/AdminSidebar'
+
+import AdminPaginacion
+  from '../../components/Admin/AdminPaginacion'
 
 const formularioInicial = {
   rol_id: '',
@@ -17,719 +28,1595 @@ const formularioInicial = {
   estado: 'ACTIVO',
 }
 
+const paginacionInicial = {
+  current_page: 1,
+  last_page: 1,
+  per_page: 20,
+  total: 0,
+  from: 0,
+  to: 0,
+}
+
 function AdminUsuarios() {
-  const { usuario: usuarioAutenticado } = useAuth()
+  const {
+    usuario:
+      usuarioAutenticado,
+  } = useAuth()
 
-  const [usuarios, setUsuarios] = useState([])
-  const [roles, setRoles] = useState([])
+  const [
+    usuarios,
+    setUsuarios,
+  ] = useState([])
 
-  const [busqueda, setBusqueda] = useState('')
-  const [cargando, setCargando] = useState(true)
-  const [guardando, setGuardando] = useState(false)
-  const [procesandoId, setProcesandoId] = useState(null)
+  const [
+    roles,
+    setRoles,
+  ] = useState([])
 
-  const [mensaje, setMensaje] = useState('')
-  const [error, setError] = useState('')
+  const [
+    busqueda,
+    setBusqueda,
+  ] = useState('')
 
-  const [usuarioEditandoId, setUsuarioEditandoId] =
-    useState(null)
+  const [
+    busquedaAplicada,
+    setBusquedaAplicada,
+  ] = useState('')
 
-  const [formulario, setFormulario] =
-    useState(formularioInicial)
+  const [
+    rolFiltro,
+    setRolFiltro,
+  ] = useState('TODOS')
 
-  const cargarDatos = async () => {
-    try {
-      setCargando(true)
-      setError('')
+  const [
+    estadoFiltro,
+    setEstadoFiltro,
+  ] = useState('TODOS')
 
-      const [
-        usuariosRespuesta,
-        rolesRespuesta,
-      ] = await Promise.all([
-        api.get('/usuarios'),
-        api.get('/roles'),
-      ])
+  const [
+    origenFiltro,
+    setOrigenFiltro,
+  ] = useState('TODOS')
 
-      setUsuarios(
-        usuariosRespuesta.data.data ?? [],
-      )
+  const [
+    pagina,
+    setPagina,
+  ] = useState(1)
 
-      setRoles(
-        rolesRespuesta.data.data ?? [],
-      )
-    } catch (err) {
-      setError(
-        err.response?.data?.message
-          ?? 'No fue posible cargar los usuarios.',
-      )
-    } finally {
-      setCargando(false)
-    }
-  }
+  const [
+    porPagina,
+    setPorPagina,
+  ] = useState(20)
+
+  const [
+    paginacion,
+    setPaginacion,
+  ] = useState(
+    paginacionInicial
+  )
+
+  const [
+    cargando,
+    setCargando,
+  ] = useState(true)
+
+  const [
+    guardando,
+    setGuardando,
+  ] = useState(false)
+
+  const [
+    procesandoId,
+    setProcesandoId,
+  ] = useState(null)
+
+  const [
+    mensaje,
+    setMensaje,
+  ] = useState('')
+
+  const [
+    error,
+    setError,
+  ] = useState('')
+
+  const [
+    usuarioEditandoId,
+    setUsuarioEditandoId,
+  ] = useState(null)
+
+  const [
+    formulario,
+    setFormulario,
+  ] = useState(
+    formularioInicial
+  )
+
+  const [
+    usuarioConfirmarEliminacion,
+    setUsuarioConfirmarEliminacion,
+  ] = useState(null)
 
   useEffect(() => {
-    cargarDatos()
+    const cargarRoles =
+      async () => {
+        try {
+          const respuesta =
+            await api.get(
+              '/roles'
+            )
+
+          setRoles(
+            respuesta.data.data
+            ?? []
+          )
+        } catch (err) {
+          setError(
+            err.response?.data
+              ?.message
+            ?? 'No fue posible cargar los roles.'
+          )
+        }
+      }
+
+    cargarRoles()
   }, [])
 
-  const limpiarMensajes = () => {
-    setMensaje('')
-    setError('')
-  }
+  useEffect(() => {
+    const temporizador =
+      setTimeout(
+        () => {
+          setBusquedaAplicada(
+            busqueda.trim()
+          )
 
-  const limpiarFormulario = () => {
-    setFormulario(formularioInicial)
-    setUsuarioEditandoId(null)
-  }
+          setPagina(1)
+        },
+        400
+      )
 
-  const obtenerPrimerError = (err) => {
-    const errores = err.response?.data?.errors
+    return () =>
+      clearTimeout(
+        temporizador
+      )
+  }, [busqueda])
 
-    if (errores) {
-      const primerError =
-        Object.values(errores)?.[0]?.[0]
+  const cargarUsuarios =
+    async () => {
+      try {
+        setCargando(true)
+        setError('')
 
-      if (primerError) {
-        return primerError
+        const params = {
+          paginar: 1,
+          page: pagina,
+          per_page: porPagina,
+        }
+
+        if (
+          busquedaAplicada
+        ) {
+          params.buscar =
+            busquedaAplicada
+        }
+
+        if (
+          rolFiltro
+          !== 'TODOS'
+        ) {
+          params.rol_id =
+            Number(
+              rolFiltro
+            )
+        }
+
+        if (
+          estadoFiltro
+          !== 'TODOS'
+        ) {
+          params.estado =
+            estadoFiltro
+        }
+
+        if (
+          origenFiltro
+          !== 'TODOS'
+        ) {
+          params.origen =
+            origenFiltro
+        }
+
+        const respuesta =
+          await api.get(
+            '/usuarios',
+            {
+              params,
+            }
+          )
+
+        const meta = {
+          ...paginacionInicial,
+          ...(
+            respuesta.data.meta
+            ?? {}
+          ),
+        }
+
+        if (
+          pagina
+          > meta.last_page
+          && meta.last_page >= 1
+        ) {
+          setPagina(
+            meta.last_page
+          )
+
+          return
+        }
+
+        setUsuarios(
+          respuesta.data.data
+          ?? []
+        )
+
+        setPaginacion(
+          meta
+        )
+      } catch (err) {
+        setError(
+          err.response?.data
+            ?.message
+          ?? 'No fue posible cargar los usuarios.'
+        )
+
+        setUsuarios([])
+
+        setPaginacion(
+          paginacionInicial
+        )
+      } finally {
+        setCargando(false)
       }
     }
 
-    return (
-      err.response?.data?.message
-      ?? 'Ocurrió un error al procesar la solicitud.'
-    )
-  }
+  useEffect(() => {
+    cargarUsuarios()
+  }, [
+    pagina,
+    porPagina,
+    busquedaAplicada,
+    rolFiltro,
+    estadoFiltro,
+    origenFiltro,
+  ])
 
-  const manejarCambio = (event) => {
-    const {
-      name,
-      value,
-    } = event.target
-
-    setFormulario((anterior) => ({
-      ...anterior,
-      [name]: value,
-    }))
-  }
-
-  const usuariosFiltrados = useMemo(() => {
-    const termino =
-      busqueda.trim().toLowerCase()
-
-    if (!termino) {
-      return usuarios
+  const limpiarMensajes =
+    () => {
+      setMensaje('')
+      setError('')
     }
 
-    return usuarios.filter((usuario) => {
-      const nombreCompleto =
-        `${usuario.nombres ?? ''} ${usuario.apellidos ?? ''}`
-          .toLowerCase()
+  const limpiarFormulario =
+    () => {
+      setFormulario(
+        formularioInicial
+      )
 
-      const correo =
-        (usuario.correo ?? '').toLowerCase()
+      setUsuarioEditandoId(
+        null
+      )
+    }
 
-      const rol =
-        (usuario.rol?.nombre ?? '').toLowerCase()
+  const obtenerPrimerError =
+    (err) => {
+      const errores =
+        err.response?.data
+          ?.errors
+
+      if (errores) {
+        const primerError =
+          Object.values(
+            errores
+          )?.[0]?.[0]
+
+        if (primerError) {
+          return primerError
+        }
+      }
 
       return (
-        nombreCompleto.includes(termino)
-        || correo.includes(termino)
-        || rol.includes(termino)
+        err.response?.data
+          ?.message
+        ?? 'Ocurrió un error al procesar la solicitud.'
       )
-    })
-  }, [usuarios, busqueda])
-
-  const prepararPayload = () => {
-    const payload = {
-      rol_id: Number(formulario.rol_id),
-      nombres: formulario.nombres.trim(),
-      apellidos: formulario.apellidos.trim(),
-      correo: formulario.correo.trim(),
-      telefono:
-        formulario.telefono.trim() || null,
-      nit:
-        formulario.nit.trim() || null,
-      direccion:
-        formulario.direccion.trim() || null,
-      estado: formulario.estado,
     }
 
-    if (
-      !usuarioEditandoId
-      || formulario.password
-    ) {
-      payload.password =
-        formulario.password
+  const manejarCambio =
+    (event) => {
+      const {
+        name,
+        value,
+      } = event.target
 
-      payload.password_confirmation =
-        formulario.password_confirmation
+      setFormulario(
+        (anterior) => ({
+          ...anterior,
+          [name]:
+            value,
+        })
+      )
     }
 
-    return payload
-  }
+  const cambiarRolFiltro =
+    (valor) => {
+      setRolFiltro(
+        valor
+      )
 
-  const guardarUsuario = async (event) => {
-    event.preventDefault()
+      setPagina(1)
+    }
 
-    try {
-      setGuardando(true)
-      limpiarMensajes()
+  const cambiarEstadoFiltro =
+    (valor) => {
+      setEstadoFiltro(
+        valor
+      )
 
-      const payload = prepararPayload()
+      setPagina(1)
+    }
 
-      if (usuarioEditandoId) {
-        await api.patch(
-          `/usuarios/${usuarioEditandoId}`,
-          payload,
-        )
+  const cambiarOrigenFiltro =
+    (valor) => {
+      setOrigenFiltro(
+        valor
+      )
 
-        setMensaje(
-          'Usuario actualizado correctamente.',
-        )
-      } else {
-        await api.post(
-          '/usuarios',
-          payload,
-        )
+      setPagina(1)
+    }
 
-        setMensaje(
-          'Usuario creado correctamente.',
-        )
+  const cambiarPorPagina =
+    (valor) => {
+      setPorPagina(
+        valor
+      )
+
+      setPagina(1)
+    }
+
+  const cambiarPagina =
+    (nuevaPagina) => {
+      if (
+        nuevaPagina < 1
+        || nuevaPagina
+          > paginacion.last_page
+      ) {
+        return
       }
 
-      limpiarFormulario()
-      await cargarDatos()
-
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      })
-    } catch (err) {
-      setError(obtenerPrimerError(err))
-
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      })
-    } finally {
-      setGuardando(false)
-    }
-  }
-
-  const editarUsuario = (usuario) => {
-    limpiarMensajes()
-
-    setUsuarioEditandoId(usuario.id)
-
-    setFormulario({
-      rol_id:
-        usuario.rol_id?.toString() ?? '',
-      nombres:
-        usuario.nombres ?? '',
-      apellidos:
-        usuario.apellidos ?? '',
-      correo:
-        usuario.correo ?? '',
-      password: '',
-      password_confirmation: '',
-      telefono:
-        usuario.telefono ?? '',
-      nit:
-        usuario.nit ?? '',
-      direccion:
-        usuario.direccion ?? '',
-      estado:
-        usuario.estado ?? 'ACTIVO',
-    })
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
-  }
-
-  const cancelarEdicion = () => {
-    limpiarFormulario()
-    limpiarMensajes()
-  }
-
-  const eliminarUsuario = async (usuario) => {
-    const confirmar = window.confirm(
-      `¿Deseas eliminar al usuario "${usuario.nombres} ${usuario.apellidos}"?`,
-    )
-
-    if (!confirmar) {
-      return
-    }
-
-    try {
-      setProcesandoId(usuario.id)
-      limpiarMensajes()
-
-      await api.delete(
-        `/usuarios/${usuario.id}`,
+      setPagina(
+        nuevaPagina
       )
+
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      })
+    }
+
+  const limpiarFiltros =
+    () => {
+      setBusqueda('')
+      setBusquedaAplicada('')
+      setRolFiltro('TODOS')
+      setEstadoFiltro('TODOS')
+      setOrigenFiltro('TODOS')
+      setPagina(1)
+    }
+
+  const prepararPayload =
+    () => {
+      const payload = {
+        rol_id:
+          Number(
+            formulario
+              .rol_id
+          ),
+
+        nombres:
+          formulario
+            .nombres
+            .trim(),
+
+        apellidos:
+          formulario
+            .apellidos
+            .trim(),
+
+        correo:
+          formulario
+            .correo
+            .trim(),
+
+        telefono:
+          formulario
+            .telefono
+            .trim()
+          || null,
+
+        nit:
+          formulario
+            .nit
+            .trim()
+          || null,
+
+        direccion:
+          formulario
+            .direccion
+            .trim()
+          || null,
+
+        estado:
+          formulario
+            .estado,
+      }
 
       if (
-        usuarioEditandoId === usuario.id
+        !usuarioEditandoId
+        || formulario.password
       ) {
-        limpiarFormulario()
+        payload.password =
+          formulario.password
+
+        payload.password_confirmation =
+          formulario
+            .password_confirmation
       }
 
-      setMensaje(
-        'Usuario eliminado correctamente.',
+      return payload
+    }
+
+  const guardarUsuario =
+    async (event) => {
+      event.preventDefault()
+
+      try {
+        setGuardando(true)
+        limpiarMensajes()
+
+        const payload =
+          prepararPayload()
+
+        if (
+          usuarioEditandoId
+        ) {
+          await api.patch(
+            `/usuarios/${usuarioEditandoId}`,
+            payload
+          )
+
+          setMensaje(
+            'Usuario actualizado correctamente.'
+          )
+        } else {
+          await api.post(
+            '/usuarios',
+            payload
+          )
+
+          setMensaje(
+            'Usuario creado correctamente.'
+          )
+        }
+
+        limpiarFormulario()
+
+        await cargarUsuarios()
+
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        })
+      } catch (err) {
+        setError(
+          obtenerPrimerError(
+            err
+          )
+        )
+
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        })
+      } finally {
+        setGuardando(false)
+      }
+    }
+
+  const editarUsuario =
+    (usuario) => {
+      limpiarMensajes()
+
+      setUsuarioEditandoId(
+        usuario.id
       )
 
-      await cargarDatos()
+      setFormulario({
+        rol_id:
+          usuario.rol_id
+            ?.toString()
+          ?? '',
+
+        nombres:
+          usuario.nombres
+          ?? '',
+
+        apellidos:
+          usuario.apellidos
+          ?? '',
+
+        correo:
+          usuario.correo
+          ?? '',
+
+        password:
+          '',
+
+        password_confirmation:
+          '',
+
+        telefono:
+          usuario.telefono
+          ?? '',
+
+        nit:
+          usuario.nit
+          ?? '',
+
+        direccion:
+          usuario.direccion
+          ?? '',
+
+        estado:
+          usuario.estado
+          ?? 'ACTIVO',
+      })
 
       window.scrollTo({
         top: 0,
         behavior: 'smooth',
       })
-    } catch (err) {
-      setError(obtenerPrimerError(err))
-
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      })
-    } finally {
-      setProcesandoId(null)
-    }
-  }
-
-  const formatearFecha = (fecha) => {
-    if (!fecha) {
-      return 'Nunca'
     }
 
-    return new Intl.DateTimeFormat(
-      'es-GT',
-      {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      },
-    ).format(
-      new Date(fecha),
+  const cancelarEdicion =
+    () => {
+      limpiarFormulario()
+      limpiarMensajes()
+    }
+
+  const solicitarEliminarUsuario =
+    (usuario) => {
+      limpiarMensajes()
+
+      setUsuarioConfirmarEliminacion(
+        usuario
+      )
+    }
+
+  const cerrarConfirmacion =
+    () => {
+      if (procesandoId) {
+        return
+      }
+
+      setUsuarioConfirmarEliminacion(
+        null
+      )
+    }
+
+  const confirmarEliminarUsuario =
+    async () => {
+      if (
+        !usuarioConfirmarEliminacion
+      ) {
+        return
+      }
+
+      const usuario =
+        usuarioConfirmarEliminacion
+
+      try {
+        setProcesandoId(
+          usuario.id
+        )
+
+        limpiarMensajes()
+
+        await api.delete(
+          `/usuarios/${usuario.id}`
+        )
+
+        if (
+          usuarioEditandoId
+          === usuario.id
+        ) {
+          limpiarFormulario()
+        }
+
+        setUsuarioConfirmarEliminacion(
+          null
+        )
+
+        setMensaje(
+          'Usuario eliminado correctamente.'
+        )
+
+        await cargarUsuarios()
+
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        })
+      } catch (err) {
+        setUsuarioConfirmarEliminacion(
+          null
+        )
+
+        setError(
+          obtenerPrimerError(
+            err
+          )
+        )
+
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        })
+      } finally {
+        setProcesandoId(
+          null
+        )
+      }
+    }
+
+  const formatearFecha =
+    (fecha) => {
+      if (!fecha) {
+        return 'Nunca'
+      }
+
+      return new Intl.DateTimeFormat(
+        'es-GT',
+        {
+          timeZone:
+            'America/Guatemala',
+
+          day:
+            '2-digit',
+
+          month:
+            '2-digit',
+
+          year:
+            'numeric',
+
+          hour:
+            '2-digit',
+
+          minute:
+            '2-digit',
+        }
+      ).format(
+        new Date(fecha)
+      )
+    }
+
+  const obtenerOrigen =
+    (usuario) => {
+      if (
+        usuario.google_id
+      ) {
+        return 'Google'
+      }
+
+      return 'Correo'
+    }
+
+  const obtenerClaseEstado =
+    (estado) => {
+      switch (estado) {
+        case 'ACTIVO':
+          return (
+            'admin-estado-activo'
+          )
+
+        case 'INACTIVO':
+          return (
+            'admin-estado-inactivo'
+          )
+
+        case 'BLOQUEADO':
+          return (
+            'admin-estado-bloqueado'
+          )
+
+        default:
+          return ''
+      }
+    }
+
+  const procesando =
+    Boolean(
+      procesandoId
     )
-  }
 
-  const obtenerOrigen = (usuario) => {
-    if (usuario.google_id) {
-      return 'Google'
-    }
-
-    return 'Correo'
-  }
-
-  const obtenerClaseEstado = (estado) => {
-    switch (estado) {
-      case 'ACTIVO':
-        return 'admin-estado-activo'
-
-      case 'INACTIVO':
-        return 'admin-estado-inactivo'
-
-      case 'BLOQUEADO':
-        return 'admin-estado-bloqueado'
-
-      default:
-        return ''
-    }
-  }
-
-  if (cargando) {
-    return (
-      <div className="admin-pagina">
-        <p>Cargando usuarios...</p>
-      </div>
+  const hayFiltros =
+    Boolean(
+      busqueda
     )
-  }
+    || rolFiltro !== 'TODOS'
+    || estadoFiltro !== 'TODOS'
+    || origenFiltro !== 'TODOS'
 
   return (
-    <div className="admin-pagina">
-      <div className="admin-pagina-encabezado">
-        <div>
-          <p className="admin-etiqueta">
-            ADMINISTRACIÓN
-          </p>
+    <div className="admin-layout">
+      <AdminSidebar />
 
-          <h1>Usuarios</h1>
+      <main className="admin-contenido">
+        <div className="admin-pagina">
+          <div className="admin-pagina-encabezado">
+            <div>
+              <p className="admin-etiqueta">
+                ADMINISTRACIÓN
+              </p>
 
-          <p>
-            Administra usuarios, roles y estados
-            de acceso de Atlantic Cinema.
-          </p>
-        </div>
+              <h1>
+                Usuarios
+              </h1>
 
-        <Link
-          to="/admin"
-          className="admin-volver"
-        >
-          ← Volver al panel
-        </Link>
-      </div>
+              <p>
+                Administra usuarios,
+                roles y estados de
+                acceso de Atlantic
+                Cinema.
+              </p>
+            </div>
+          </div>
 
-      {mensaje && (
-        <div
-          className="
-            admin-mensaje
-            admin-mensaje-exito
-          "
-        >
-          {mensaje}
-        </div>
-      )}
-
-      {error && (
-        <div
-          className="
-            admin-mensaje
-            admin-mensaje-error
-          "
-        >
-          {error}
-        </div>
-      )}
-
-      <section className="admin-seccion">
-        <div className="admin-seccion-titulo">
-          <h2>
-            {usuarioEditandoId
-              ? 'Editar usuario'
-              : 'Crear usuario'}
-          </h2>
-
-          {usuarioEditandoId && (
-            <span className="admin-editando">
-              Editando usuario #
-              {usuarioEditandoId}
-            </span>
+          {mensaje && (
+            <div className="admin-mensaje admin-mensaje-exito">
+              {mensaje}
+            </div>
           )}
-        </div>
 
-        <form
-          className="admin-formulario"
-          onSubmit={guardarUsuario}
-        >
-          <div className="admin-form-grid">
-            <label>
-              Nombres
-              <input
-                type="text"
-                name="nombres"
-                value={formulario.nombres}
-                onChange={manejarCambio}
-                required
-              />
-            </label>
+          {error && (
+            <div className="admin-mensaje admin-mensaje-error">
+              {error}
+            </div>
+          )}
 
-            <label>
-              Apellidos
-              <input
-                type="text"
-                name="apellidos"
-                value={formulario.apellidos}
-                onChange={manejarCambio}
-                required
-              />
-            </label>
-
-            <label>
-              Correo electrónico
-              <input
-                type="email"
-                name="correo"
-                value={formulario.correo}
-                onChange={manejarCambio}
-                required
-              />
-            </label>
-
-            <label>
-              Rol
-              <select
-                name="rol_id"
-                value={formulario.rol_id}
-                onChange={manejarCambio}
-                required
-              >
-                <option value="">
-                  Seleccionar
-                </option>
-
-                {roles.map((rol) => (
-                  <option
-                    key={rol.id}
-                    value={rol.id}
-                  >
-                    {rol.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Estado
-              <select
-                name="estado"
-                value={formulario.estado}
-                onChange={manejarCambio}
-              >
-                <option value="ACTIVO">
-                  ACTIVO
-                </option>
-
-                <option value="INACTIVO">
-                  INACTIVO
-                </option>
-
-                <option value="BLOQUEADO">
-                  BLOQUEADO
-                </option>
-              </select>
-            </label>
-
-            <label>
-              Teléfono
-              <input
-                type="text"
-                name="telefono"
-                value={formulario.telefono}
-                onChange={manejarCambio}
-              />
-            </label>
-
-            <label>
-              NIT
-              <input
-                type="text"
-                name="nit"
-                value={formulario.nit}
-                onChange={manejarCambio}
-              />
-            </label>
-
-            <label>
-              Dirección
-              <input
-                type="text"
-                name="direccion"
-                value={formulario.direccion}
-                onChange={manejarCambio}
-              />
-            </label>
-
-            <label>
-              Contraseña
-              <input
-                type="password"
-                name="password"
-                value={formulario.password}
-                onChange={manejarCambio}
-                required={!usuarioEditandoId}
-              />
+          <section className="admin-seccion">
+            <div className="admin-seccion-titulo">
+              <h2>
+                {usuarioEditandoId
+                  ? 'Editar usuario'
+                  : 'Crear usuario'}
+              </h2>
 
               {usuarioEditandoId && (
-                <small>
-                  Déjala vacía para conservar
-                  la contraseña actual.
-                </small>
+                <span className="admin-editando">
+                  Editando usuario #
+                  {
+                    usuarioEditandoId
+                  }
+                </span>
               )}
-            </label>
+            </div>
 
-            <label>
-              Confirmar contraseña
-              <input
-                type="password"
-                name="password_confirmation"
-                value={
-                  formulario.password_confirmation
-                }
-                onChange={manejarCambio}
-                required={
-                  !usuarioEditandoId
-                  || Boolean(formulario.password)
-                }
-              />
-            </label>
-          </div>
-
-          <div className="admin-form-acciones">
-            <button
-              type="submit"
-              disabled={guardando}
+            <form
+              className="admin-formulario"
+              onSubmit={
+                guardarUsuario
+              }
             >
-              {guardando
-                ? 'Guardando...'
-                : usuarioEditandoId
-                  ? 'Actualizar usuario'
-                  : 'Crear usuario'}
-            </button>
+              <div className="admin-usuario-form-bloque">
+                <div className="admin-usuario-form-cabecera">
+                  <span>
+                    INFORMACIÓN PERSONAL
+                  </span>
 
-            {usuarioEditandoId && (
-              <button
-                type="button"
-                className="admin-boton-secundario"
-                onClick={cancelarEdicion}
-                disabled={guardando}
-              >
-                Cancelar edición
-              </button>
-            )}
-          </div>
-        </form>
-      </section>
+                  <strong>
+                    Datos del usuario
+                  </strong>
 
-      <section className="admin-seccion">
-        <div className="admin-seccion-titulo">
-          <div>
-            <h2>Usuarios registrados</h2>
+                  <p>
+                    Información general asociada a la cuenta.
+                    Teléfono, NIT y dirección son opcionales.
+                  </p>
+                </div>
 
-            <p>
-              {usuariosFiltrados.length}
-              {' '}
-              usuario(s) mostrado(s).
-            </p>
-          </div>
+                <div className="admin-form-grid">
+                  <label>
+                    Nombres
 
-          <input
-            className="admin-buscador"
-            type="search"
-            placeholder="Buscar nombre, correo o rol..."
-            value={busqueda}
-            onChange={(event) =>
-              setBusqueda(event.target.value)
-            }
-          />
-        </div>
+                    <input
+                      type="text"
+                      name="nombres"
+                      value={
+                        formulario
+                          .nombres
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                      required
+                    />
+                  </label>
 
-        {usuariosFiltrados.length === 0 ? (
-          <p>
-            No se encontraron usuarios.
-          </p>
-        ) : (
-          <div className="admin-tabla-contenedor">
-            <table className="admin-tabla admin-tabla-usuarios">
-              <thead>
-                <tr>
-                  <th>Usuario</th>
-                  <th>Correo</th>
-                  <th>Rol</th>
-                  <th>Estado</th>
-                  <th>Origen</th>
-                  <th>Último acceso</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
+                  <label>
+                    Apellidos
 
-              <tbody>
-                {usuariosFiltrados.map(
-                  (usuario) => {
-                    const procesando =
-                      procesandoId === usuario.id
+                    <input
+                      type="text"
+                      name="apellidos"
+                      value={
+                        formulario
+                          .apellidos
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                      required
+                    />
+                  </label>
 
-                    const esActual =
-                      usuarioAutenticado?.id
-                      === usuario.id
+                  <label>
+                    Teléfono
 
-                    return (
-                      <tr key={usuario.id}>
-                        <td>
-                          <strong>
-                            {usuario.nombres}
-                            {' '}
-                            {usuario.apellidos}
-                          </strong>
+                    <input
+                      type="text"
+                      name="telefono"
+                      value={
+                        formulario
+                          .telefono
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                      placeholder="Ej. 5555 5555"
+                    />
+                  </label>
 
-                          {esActual && (
-                            <small>
-                              Sesión actual
-                            </small>
-                          )}
-                        </td>
+                  <label>
+                    NIT
 
-                        <td>
-                          {usuario.correo}
-                        </td>
+                    <input
+                      type="text"
+                      name="nit"
+                      value={
+                        formulario
+                          .nit
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                      placeholder="Ej. 1234567-8 o CF"
+                    />
+                  </label>
 
-                        <td>
-                          {
-                            usuario.rol?.nombre
-                            ?? '-'
-                          }
-                        </td>
+                  <label className="admin-usuario-campo-completo">
+                    Dirección
 
-                        <td>
-                          <span
-                            className={
-                              obtenerClaseEstado(
-                                usuario.estado,
-                              )
+                    <input
+                      type="text"
+                      name="direccion"
+                      value={
+                        formulario
+                          .direccion
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                      placeholder="Dirección de residencia"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="admin-usuario-form-bloque">
+                <div className="admin-usuario-form-cabecera">
+                  <span>
+                    ACCESO Y SEGURIDAD
+                  </span>
+
+                  <strong>
+                    Credenciales y permisos
+                  </strong>
+
+                  <p>
+                    Define el correo de acceso, rol, estado y contraseña de la cuenta.
+                  </p>
+                </div>
+
+                <div className="admin-form-grid">
+                  <label>
+                    Correo electrónico
+
+                    <input
+                      type="email"
+                      name="correo"
+                      value={
+                        formulario
+                          .correo
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                      autoComplete="email"
+                      required
+                    />
+
+                    <small className="admin-campo-ayuda">
+                      Se utiliza como identificador de acceso al sistema.
+                    </small>
+                  </label>
+
+                  <label>
+                    Rol
+
+                    <select
+                      name="rol_id"
+                      value={
+                        formulario
+                          .rol_id
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                      required
+                    >
+                      <option value="">
+                        Seleccionar
+                      </option>
+
+                      {roles.map(
+                        (rol) => (
+                          <option
+                            key={
+                              rol.id
+                            }
+                            value={
+                              rol.id
                             }
                           >
-                            {usuario.estado}
-                          </span>
-                        </td>
+                            {rol.nombre}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </label>
 
-                        <td>
-                          {obtenerOrigen(
-                            usuario,
-                          )}
-                        </td>
+                  <label>
+                    Estado
 
-                        <td>
-                          {formatearFecha(
-                            usuario.ultimo_acceso_en,
-                          )}
-                        </td>
+                    <select
+                      name="estado"
+                      value={
+                        formulario
+                          .estado
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                    >
+                      <option value="ACTIVO">
+                        ACTIVO
+                      </option>
 
-                        <td>
-                          <div className="admin-tabla-acciones">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                editarUsuario(
-                                  usuario,
-                                )
-                              }
-                              disabled={procesando}
-                            >
-                              Editar
-                            </button>
+                      <option value="INACTIVO">
+                        INACTIVO
+                      </option>
 
-                            <button
-                              type="button"
-                              className="admin-boton-eliminar"
-                              onClick={() =>
-                                eliminarUsuario(
-                                  usuario,
-                                )
-                              }
-                              disabled={
-                                procesando
-                                || esActual
-                              }
-                              title={
-                                esActual
-                                  ? 'No puedes eliminar tu propia cuenta'
-                                  : 'Eliminar usuario'
-                              }
-                            >
-                              {procesando
-                                ? 'Procesando...'
-                                : 'Eliminar'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  },
+                      <option value="BLOQUEADO">
+                        BLOQUEADO
+                      </option>
+                    </select>
+                  </label>
+
+                  <div className="admin-usuario-form-espacio" />
+
+                  <label>
+                    Contraseña
+
+                    <input
+                      type="password"
+                      name="password"
+                      value={
+                        formulario
+                          .password
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                      autoComplete="new-password"
+                      required={
+                        !usuarioEditandoId
+                      }
+                    />
+
+                    <small className="admin-campo-ayuda">
+                      Mínimo 8 caracteres, una mayúscula,
+                      una minúscula y un número.
+                    </small>
+
+                    {usuarioEditandoId && (
+                      <small className="admin-campo-ayuda">
+                        Déjala vacía para conservar la contraseña actual.
+                      </small>
+                    )}
+                  </label>
+
+                  <label>
+                    Confirmar contraseña
+
+                    <input
+                      type="password"
+                      name="password_confirmation"
+                      value={
+                        formulario
+                          .password_confirmation
+                      }
+                      onChange={
+                        manejarCambio
+                      }
+                      autoComplete="new-password"
+                      required={
+                        !usuarioEditandoId
+                        || Boolean(
+                          formulario.password
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="admin-form-acciones">
+                <button
+                  type="submit"
+                  disabled={
+                    guardando
+                  }
+                >
+                  {guardando
+                    ? 'Guardando...'
+                    : usuarioEditandoId
+                      ? 'Actualizar usuario'
+                      : 'Crear usuario'}
+                </button>
+
+                {usuarioEditandoId && (
+                  <button
+                    type="button"
+                    className="admin-boton-secundario"
+                    onClick={
+                      cancelarEdicion
+                    }
+                    disabled={
+                      guardando
+                    }
+                  >
+                    Cancelar edición
+                  </button>
                 )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+              </div>
+            </form>
+          </section>
+                    <section className="admin-seccion">
+            <div className="admin-seccion-titulo">
+              <div>
+                <h2>
+                  Usuarios registrados
+                </h2>
+
+                <p>
+                  {paginacion.total}
+                  {' '}
+                  usuario(s)
+                  encontrado(s).
+                </p>
+              </div>
+
+              <div className="admin-filtros-usuarios">
+                <div className="admin-filtros-usuarios-titulo">
+                  <span>
+                    FILTROS
+                  </span>
+
+                  <strong>
+                    Buscar usuarios
+                  </strong>
+                </div>
+
+                <input
+                  className="admin-buscador"
+                  type="search"
+                  placeholder="Nombre, correo, rol..."
+                  value={
+                    busqueda
+                  }
+                  onChange={(event) =>
+                    setBusqueda(
+                      event.target.value
+                    )
+                  }
+                />
+
+                <select
+                  value={
+                    rolFiltro
+                  }
+                  onChange={(event) =>
+                    cambiarRolFiltro(
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="TODOS">
+                    Todos los roles
+                  </option>
+
+                  {roles.map(
+                    (rol) => (
+                      <option
+                        key={
+                          rol.id
+                        }
+                        value={
+                          rol.id
+                        }
+                      >
+                        {rol.nombre}
+                      </option>
+                    )
+                  )}
+                </select>
+
+                <select
+                  value={
+                    estadoFiltro
+                  }
+                  onChange={(event) =>
+                    cambiarEstadoFiltro(
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="TODOS">
+                    Todos los estados
+                  </option>
+
+                  <option value="ACTIVO">
+                    ACTIVO
+                  </option>
+
+                  <option value="INACTIVO">
+                    INACTIVO
+                  </option>
+
+                  <option value="BLOQUEADO">
+                    BLOQUEADO
+                  </option>
+                </select>
+
+                <select
+                  value={
+                    origenFiltro
+                  }
+                  onChange={(event) =>
+                    cambiarOrigenFiltro(
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="TODOS">
+                    Todos los orígenes
+                  </option>
+
+                  <option value="CORREO">
+                    Correo
+                  </option>
+
+                  <option value="GOOGLE">
+                    Google
+                  </option>
+                </select>
+
+                {hayFiltros && (
+                  <button
+                    type="button"
+                    className="admin-boton-secundario"
+                    onClick={
+                      limpiarFiltros
+                    }
+                    disabled={
+                      cargando
+                    }
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {cargando ? (
+              <div className="admin-cargando admin-cargando-listado">
+                <div className="cartelera-spinner" />
+
+                <p>
+                  Cargando usuarios...
+                </p>
+              </div>
+            ) : usuarios.length === 0 ? (
+              <div className="admin-listado-vacio">
+                <p>
+                  No se encontraron usuarios con los filtros seleccionados.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="admin-tabla-contenedor">
+                  <table className="admin-tabla admin-tabla-usuarios">
+                    <thead>
+                      <tr>
+                        <th>
+                          Usuario
+                        </th>
+
+                        <th>
+                          Correo
+                        </th>
+
+                        <th>
+                          Rol
+                        </th>
+
+                        <th>
+                          Estado
+                        </th>
+
+                        <th>
+                          Origen
+                        </th>
+
+                        <th>
+                          Último acceso
+                        </th>
+
+                        <th>
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {usuarios.map(
+                        (usuario) => {
+                          const filaProcesando =
+                            procesandoId
+                            === usuario.id
+
+                          const esActual =
+                            usuarioAutenticado?.id
+                            === usuario.id
+
+                          return (
+                            <tr
+                              key={
+                                usuario.id
+                              }
+                            >
+                              <td>
+                                <div className="usuario-tabla-identidad">
+                                  <strong>
+                                    {usuario.nombres}
+                                    {' '}
+                                    {usuario.apellidos}
+                                  </strong>
+
+                                  <span>
+                                    Usuario #
+                                    {usuario.id}
+                                  </span>
+
+                                  {esActual && (
+                                    <small>
+                                      Sesión actual
+                                    </small>
+                                  )}
+                                </div>
+                              </td>
+
+                              <td>
+                                <span className="usuario-tabla-correo">
+                                  {usuario.correo}
+                                </span>
+                              </td>
+
+                              <td>
+                                <span className="usuario-tabla-rol">
+                                  {
+                                    usuario.rol
+                                      ?.nombre
+                                    ?? '-'
+                                  }
+                                </span>
+                              </td>
+
+                              <td>
+                                <span
+                                  className={
+                                    obtenerClaseEstado(
+                                      usuario.estado
+                                    )
+                                  }
+                                >
+                                  {usuario.estado}
+                                </span>
+                              </td>
+
+                              <td>
+                                <span className="usuario-tabla-origen">
+                                  {
+                                    obtenerOrigen(
+                                      usuario
+                                    )
+                                  }
+                                </span>
+                              </td>
+
+                              <td>
+                                <span className="usuario-tabla-fecha">
+                                  {
+                                    formatearFecha(
+                                      usuario
+                                        .ultimo_acceso_en
+                                    )
+                                  }
+                                </span>
+                              </td>
+
+                              <td>
+                                <div className="admin-tabla-acciones usuario-tabla-acciones">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      editarUsuario(
+                                        usuario
+                                      )
+                                    }
+                                    disabled={
+                                      filaProcesando
+                                    }
+                                  >
+                                    Editar
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="admin-boton-eliminar"
+                                    onClick={() =>
+                                      solicitarEliminarUsuario(
+                                        usuario
+                                      )
+                                    }
+                                    disabled={
+                                      filaProcesando
+                                      || esActual
+                                    }
+                                    title={
+                                      esActual
+                                        ? 'No puedes eliminar tu propia cuenta'
+                                        : 'Eliminar usuario'
+                                    }
+                                  >
+                                    {
+                                      filaProcesando
+                                        ? 'Procesando...'
+                                        : 'Eliminar'
+                                    }
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        }
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <AdminPaginacion
+                  paginaActual={
+                    paginacion
+                      .current_page
+                  }
+                  ultimaPagina={
+                    paginacion
+                      .last_page
+                  }
+                  porPagina={
+                    paginacion
+                      .per_page
+                  }
+                  total={
+                    paginacion
+                      .total
+                  }
+                  desde={
+                    paginacion
+                      .from
+                  }
+                  hasta={
+                    paginacion
+                      .to
+                  }
+                  onCambiarPagina={
+                    cambiarPagina
+                  }
+                  onCambiarPorPagina={
+                    cambiarPorPagina
+                  }
+                  deshabilitado={
+                    cargando
+                  }
+                />
+              </>
+            )}
+          </section>
+        </div>
+      </main>
+
+      {usuarioConfirmarEliminacion && (
+        <div
+          className="confirmacion-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (
+              event.target
+              === event.currentTarget
+            ) {
+              cerrarConfirmacion()
+            }
+          }}
+        >
+          <section
+            className="confirmacion-modal admin-confirmacion-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="eliminar-usuario-titulo"
+          >
+            <div className="confirmacion-icono admin-confirmacion-icono-peligro">
+              !
+            </div>
+
+            <span className="confirmacion-etiqueta admin-confirmacion-etiqueta-peligro">
+              ELIMINAR USUARIO
+            </span>
+
+            <h2 id="eliminar-usuario-titulo">
+              ¿Eliminar este usuario?
+            </h2>
+
+            <p className="confirmacion-descripcion">
+              Revisa los datos antes de confirmar la eliminación.
+            </p>
+
+            <div className="confirmacion-resumen">
+              <div>
+                <span>
+                  Usuario
+                </span>
+
+                <strong>
+                  {
+                    usuarioConfirmarEliminacion
+                      .nombres
+                  }
+                  {' '}
+                  {
+                    usuarioConfirmarEliminacion
+                      .apellidos
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Correo
+                </span>
+
+                <strong>
+                  {
+                    usuarioConfirmarEliminacion
+                      .correo
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Rol
+                </span>
+
+                <strong>
+                  {
+                    usuarioConfirmarEliminacion
+                      .rol
+                      ?.nombre
+                    ?? 'No disponible'
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Estado
+                </span>
+
+                <strong>
+                  {
+                    usuarioConfirmarEliminacion
+                      .estado
+                  }
+                </strong>
+              </div>
+            </div>
+
+            <div className="admin-confirmacion-advertencia">
+              <strong>
+                Acción delicada
+              </strong>
+
+              <p>
+                El usuario dejará de estar disponible en el sistema.
+                Verifica que realmente deseas continuar.
+              </p>
+            </div>
+
+            <div className="confirmacion-acciones">
+              <button
+                type="button"
+                className="confirmacion-cancelar"
+                onClick={
+                  cerrarConfirmacion
+                }
+                disabled={
+                  procesando
+                }
+              >
+                Volver
+              </button>
+
+              <button
+                type="button"
+                className="admin-confirmacion-eliminar"
+                onClick={
+                  confirmarEliminarUsuario
+                }
+                disabled={
+                  procesando
+                }
+              >
+                {
+                  procesando
+                    ? 'Eliminando...'
+                    : 'Eliminar usuario'
+                }
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

@@ -19,7 +19,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $duracion_minutos
  * @property string|null $fecha_estreno
  * @property string $imagen_url
- * @property string|null $trailer_url
  * @property string $estado
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -49,7 +48,6 @@ class Pelicula extends Model
         'duracion_minutos',
         'fecha_estreno',
         'imagen_url',
-        'trailer_url',
         'estado',
     ];
 
@@ -90,8 +88,14 @@ class Pelicula extends Model
         )->withTimestamps();
     }
 
+    /**
+     * Funciones programadas para la película.
+     */
     public function funciones(): HasMany
     {
-        return $this->hasMany(Funcion::class, 'pelicula_id');
+        return $this->hasMany(
+            Funcion::class,
+            'pelicula_id'
+        );
     }
 }
