@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StorePeliculaRequest extends FormRequest
+class StoreSalaRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -15,63 +15,44 @@ class StorePeliculaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'clasificacion_id' => [
-                'required',
-                'integer',
-                'exists:clasificaciones,id',
-            ],
-
-            'titulo' => [
+            'nombre' => [
                 'required',
                 'string',
-                'max:255',
+                'max:100',
+                Rule::unique('salas', 'nombre'),
             ],
 
-            'titulo_original' => [
+            'descripcion' => [
                 'nullable',
                 'string',
-                'max:255',
-            ],
-
-            'sinopsis' => [
-                'required',
-                'string',
-            ],
-
-            'duracion_minutos' => [
-                'required',
-                'integer',
-                'min:1',
-            ],
-
-            'fecha_estreno' => [
-                'nullable',
-                'date',
-            ],
-
-            'imagen_url' => [
-                'required',
-                'string',
-                'max:500',
             ],
 
             'estado' => [
                 'sometimes',
+                'required',
                 Rule::in([
                     'ACTIVA',
                     'INACTIVA',
+                    'MANTENIMIENTO',
                 ]),
             ],
 
-            'genero_ids' => [
-                'sometimes',
+            'filas' => [
+                'required',
                 'array',
+                'min:1',
             ],
 
-            'genero_ids.*' => [
-                'integer',
+            'filas.*.fila' => [
+                'required',
+                'string',
                 'distinct',
-                'exists:generos,id',
+            ],
+
+            'filas.*.cantidad' => [
+                'required',
+                'integer',
+                'min:1',
             ],
         ];
     }
@@ -79,53 +60,86 @@ class StorePeliculaRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'clasificacion_id.required' =>
-                'Debe seleccionar una clasificación.',
+            'nombre.required' =>
+                'El nombre de la sala es obligatorio.',
 
-            'clasificacion_id.exists' =>
-                'La clasificación seleccionada no existe.',
+            'nombre.max' =>
+                'El nombre no puede superar los 100 caracteres.',
 
-            'titulo.required' =>
-                'El título de la película es obligatorio.',
+            'nombre.unique' =>
+                'Ya existe una sala con ese nombre.',
 
-            'titulo.max' =>
-                'El título no puede superar los 255 caracteres.',
-
-            'titulo_original.max' =>
-                'El título original no puede superar los 255 caracteres.',
-
-            'sinopsis.required' =>
-                'La sinopsis es obligatoria.',
-
-            'duracion_minutos.required' =>
-                'La duración de la película es obligatoria.',
-
-            'duracion_minutos.integer' =>
-                'La duración debe expresarse en minutos.',
-
-            'duracion_minutos.min' =>
-                'La duración debe ser mayor que cero.',
-
-            'fecha_estreno.date' =>
-                'La fecha de estreno no es válida.',
-
-            'imagen_url.required' =>
-                'La URL de la imagen es obligatoria.',
-
-            'imagen_url.max' =>
-                'La URL de la imagen no puede superar los 500 caracteres.',
+            'estado.required' =>
+                'Debe indicar el estado de la sala.',
 
             'estado.in' =>
-                'El estado debe ser ACTIVA o INACTIVA.',
+                'El estado debe ser ACTIVA, INACTIVA o MANTENIMIENTO.',
 
-            'genero_ids.array' =>
-                'Los géneros deben enviarse como una lista.',
+            'filas.required' =>
+                'Debe configurar las filas de la sala.',
 
-            'genero_ids.*.exists' =>
-                'Uno de los géneros seleccionados no existe.',
+            'filas.array' =>
+                'Las filas deben enviarse como una lista.',
 
-            'genero_ids.*.distinct' =>
-                'No puede seleccionar el mismo género más de una vez.',
+            'filas.min' =>
+                'Debe configurar al menos una fila de asientos.',
+
+            'filas.*.fila.required' =>
+                'Debe indicar el nombre de cada fila.',
+
+            'filas.*.fila.distinct' =>
+                'No puede existir la misma fila más de una vez.',
+
+            'filas.*.cantidad.required' =>
+                'Debe indicar la cantidad de asientos de cada fila.',
+
+            'filas.*.cantidad.integer' =>
+                'La cantidad de asientos debe ser un número entero.',
+
+            'filas.*.cantidad.min' =>
+                'Cada fila debe contener al menos un asiento.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $datos = [];
+
+        if ($this->has('estado')) {
+            $datos['estado'] =
+                is_string($this->estado)
+                    ? strtoupper(trim($this->estado))
+                    : $this->estado;
+        }
+
+        if ($this->has('filas') && is_array($this->filas)) {
+            $datos['filas'] =
+                collect($this->filas)
+                    ->map(
+                        function ($fila): mixed {
+                            if (! is_array($fila)) {
+                                return $fila;
+                            }
+
+                            if (
+                                isset($fila['fila'])
+                                && is_string($fila['fila'])
+                            ) {
+                                $fila['fila'] =
+                                    strtoupper(
+                                        trim($fila['fila'])
+                                    );
+                            }
+
+                            return $fila;
+                        }
+                    )
+                    ->values()
+                    ->all();
+        }
+
+        if ($datos !== []) {
+            $this->merge($datos);
+        }
     }
 }

@@ -358,10 +358,7 @@ class AuthController extends Controller
     public function callbackGoogle(): RedirectResponse
     {
         $frontendUrl = rtrim(
-            env(
-                'FRONTEND_URL',
-                'http://localhost:5173'
-            ),
+            (string) config('app.frontend_url'),
             '/'
         );
 

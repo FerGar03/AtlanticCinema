@@ -25,23 +25,24 @@ class SalaAsientoSeeder extends Seeder
      */
     private function crearSala1(): void
     {
-        $sala = Sala::query()->find(1);
+        $sala =
+            Sala::query()
+                ->updateOrCreate(
+                    [
+                        'nombre' =>
+                            'Sala 1',
+                    ],
+                    [
+                        'capacidad' =>
+                            141,
 
-        if (! $sala) {
-            $sala = Sala::query()->create([
-                'nombre' => 'Sala 1',
-                'capacidad' => 141,
-                'descripcion' => 'Sala 1 de Atlantic Cinema.',
-                'estado' => 'ACTIVA',
-            ]);
-        } else {
-            $sala->update([
-                'nombre' => 'Sala 1',
-                'capacidad' => 141,
-                'descripcion' => 'Sala 1 de Atlantic Cinema.',
-                'estado' => 'ACTIVA',
-            ]);
-        }
+                        'descripcion' =>
+                            'Sala 1 de Atlantic Cinema.',
+
+                        'estado' =>
+                            'ACTIVA',
+                    ]
+                );
 
         $distribucion = [
             'A' => 18,
@@ -53,13 +54,22 @@ class SalaAsientoSeeder extends Seeder
             'G' => 23,
         ];
 
-        $this->crearAsientos($sala, $distribucion);
+        $this->crearAsientos(
+            $sala,
+            $distribucion
+        );
 
-        $cantidadAsientos = $sala->asientos()->count();
+        $cantidadAsientos =
+            $sala
+                ->asientos()
+                ->count();
 
-        if ($cantidadAsientos !== 141) {
+        if (
+            $cantidadAsientos
+            !== 141
+        ) {
             throw new \RuntimeException(
-                "La Sala 1 debe tener 141 asientos, pero posee {$cantidadAsientos}.",
+                "La Sala 1 debe tener 141 asientos, pero posee {$cantidadAsientos}."
             );
         }
     }
@@ -69,23 +79,24 @@ class SalaAsientoSeeder extends Seeder
      */
     private function crearSala2(): void
     {
-        $sala = Sala::query()->find(5);
+        $sala =
+            Sala::query()
+                ->updateOrCreate(
+                    [
+                        'nombre' =>
+                            'Sala 2',
+                    ],
+                    [
+                        'capacidad' =>
+                            144,
 
-        if (! $sala) {
-            $sala = Sala::query()->create([
-                'nombre' => 'Sala 2',
-                'capacidad' => 144,
-                'descripcion' => 'Sala 2 de Atlantic Cinema.',
-                'estado' => 'ACTIVA',
-            ]);
-        } else {
-            $sala->update([
-                'nombre' => 'Sala 2',
-                'capacidad' => 144,
-                'descripcion' => 'Sala 2 de Atlantic Cinema.',
-                'estado' => 'ACTIVA',
-            ]);
-        }
+                        'descripcion' =>
+                            'Sala 2 de Atlantic Cinema.',
+
+                        'estado' =>
+                            'ACTIVA',
+                    ]
+                );
 
         $distribucion = [
             'A' => 18,
@@ -97,41 +108,72 @@ class SalaAsientoSeeder extends Seeder
             'G' => 23,
         ];
 
-        $this->crearAsientos($sala, $distribucion);
+        $this->crearAsientos(
+            $sala,
+            $distribucion
+        );
 
-        $cantidadAsientos = $sala->asientos()->count();
+        $cantidadAsientos =
+            $sala
+                ->asientos()
+                ->count();
 
-        if ($cantidadAsientos !== 144) {
+        if (
+            $cantidadAsientos
+            !== 144
+        ) {
             throw new \RuntimeException(
-                "La Sala 2 debe tener 144 asientos, pero posee {$cantidadAsientos}.",
+                "La Sala 2 debe tener 144 asientos, pero posee {$cantidadAsientos}."
             );
         }
     }
 
     /**
-     * Crea los asientos faltantes y activa los existentes.
+     * Crea los asientos faltantes
+     * y activa los existentes.
      */
     private function crearAsientos(
         Sala $sala,
         array $distribucion,
     ): void {
-        foreach ($distribucion as $fila => $cantidad) {
-            for ($numero = 1; $numero <= $cantidad; $numero++) {
-                $asiento = Asiento::query()->firstOrCreate(
-                    [
-                        'sala_id' => $sala->id,
-                        'fila' => $fila,
-                        'numero' => (string) $numero,
-                    ],
-                    [
-                        'tipo' => 'NORMAL',
-                        'estado' => 'ACTIVO',
-                    ],
-                );
+        foreach (
+            $distribucion
+            as $fila => $cantidad
+        ) {
+            for (
+                $numero = 1;
+                $numero <= $cantidad;
+                $numero++
+            ) {
+                $asiento =
+                    Asiento::query()
+                        ->firstOrCreate(
+                            [
+                                'sala_id' =>
+                                    $sala->id,
 
-                if ($asiento->estado !== 'ACTIVO') {
+                                'fila' =>
+                                    $fila,
+
+                                'numero' =>
+                                    (string) $numero,
+                            ],
+                            [
+                                'tipo' =>
+                                    'NORMAL',
+
+                                'estado' =>
+                                    'ACTIVO',
+                            ],
+                        );
+
+                if (
+                    $asiento->estado
+                    !== 'ACTIVO'
+                ) {
                     $asiento->update([
-                        'estado' => 'ACTIVO',
+                        'estado' =>
+                            'ACTIVO',
                     ]);
                 }
             }

@@ -7,7 +7,8 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * Inicializa los datos estructurales
+     * necesarios para Atlantic Cinema.
      */
     public function run(): void
     {
@@ -19,9 +20,11 @@ class DatabaseSeeder extends Seeder
             ClasificacionSeeder::class,
             GeneroSeeder::class,
             FormatoSeeder::class,
-            PeliculaSeeder::class,
-            UsuarioSeeder::class,
             MetodoPagoSeeder::class,
+
+            SalaAsientoSeeder::class,
+
+            UsuarioSeeder::class,
         ]);
     }
 }

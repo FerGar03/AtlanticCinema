@@ -54,6 +54,24 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'frontend_url' => env(
+        'FRONTEND_URL',
+        'http://localhost:5173'
+    ),
+
+    'initial_admin' => [
+        'email' => env('INITIAL_ADMIN_EMAIL'),
+        'password' => env('INITIAL_ADMIN_PASSWORD'),
+        'names' => env(
+            'INITIAL_ADMIN_NAMES',
+            'Administrador'
+        ),
+        'last_names' => env(
+            'INITIAL_ADMIN_LAST_NAMES',
+            'Atlantic Cinema'
+        ),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
