@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Formato;
 use App\Models\Funcion;
+use App\Models\Pelicula;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -37,10 +38,6 @@ class FuncionService
      *
      * Todos los registros se crean dentro
      * de una sola transacción.
-     *
-     * Si una fecha presenta traslape o
-     * cualquier otro error, se revierte
-     * el lote completo.
      *
      * @param array<string, mixed> $datos
      */
@@ -104,14 +101,19 @@ class FuncionService
                     $fechaActual->addDay();
                 }
 
-                if ($fechas->isEmpty()) {
+                if (
+                    $fechas->isEmpty()
+                ) {
                     throw ValidationException::withMessages([
                         'dias' =>
                             'El rango seleccionado no contiene ninguno de los días elegidos.',
                     ]);
                 }
 
-                if ($fechas->count() > 54) {
+                if (
+                    $fechas->count()
+                    > 54
+                ) {
                     throw ValidationException::withMessages([
                         'fecha_fin' =>
                             'No se pueden crear más de 54 funciones en una sola operación.',
@@ -136,35 +138,13 @@ class FuncionService
                             ]
                         );
 
-                    $finalizaEn =
-                        Carbon::parse(
-                            $fecha->format(
-                                'Y-m-d'
-                            )
-                            . ' '
-                            . $datos[
-                                'hora_fin'
-                            ]
-                        );
-
                     if (
-                        $iniciaEn->isPast()
+                        $iniciaEn
+                            ->isPast()
                     ) {
                         throw ValidationException::withMessages([
                             'fecha_inicio' =>
                                 'Una de las funciones calculadas iniciaría en una fecha u hora pasada.',
-                        ]);
-                    }
-
-                    if (
-                        $finalizaEn
-                            ->lessThanOrEqualTo(
-                                $iniciaEn
-                            )
-                    ) {
-                        throw ValidationException::withMessages([
-                            'hora_fin' =>
-                                'La hora de finalización debe ser posterior a la hora de inicio.',
                         ]);
                     }
 
@@ -189,9 +169,6 @@ class FuncionService
                                 'inicia_en' =>
                                     $iniciaEn,
 
-                                'finaliza_en' =>
-                                    $finalizaEn,
-
                                 'estado' =>
                                     'PROGRAMADA',
                             ]);
@@ -210,8 +187,12 @@ class FuncionService
     /**
      * Lógica centralizada de creación.
      *
-     * Se utiliza tanto para una función
-     * individual como para un lote.
+     * La finalización se calcula usando:
+     *
+     * inicio
+     * + duración de la película
+     * + redondeo hacia arriba
+     *   al siguiente bloque de 15 minutos.
      *
      * @param array<string, mixed> $datos
      */
@@ -225,15 +206,9 @@ class FuncionService
                 ]
             );
 
-        $finalizaEn =
-            Carbon::parse(
-                $datos[
-                    'finaliza_en'
-                ]
-            );
-
         if (
-            $iniciaEn->isPast()
+            $iniciaEn
+                ->isPast()
         ) {
             throw ValidationException::withMessages([
                 'inicia_en' =>
@@ -241,17 +216,20 @@ class FuncionService
             ]);
         }
 
-        if (
-            $finalizaEn
-                ->lessThanOrEqualTo(
-                    $iniciaEn
-                )
-        ) {
-            throw ValidationException::withMessages([
-                'finaliza_en' =>
-                    'La finalización debe ser posterior al inicio.',
-            ]);
-        }
+        $peliculaId =
+            (int) $datos[
+                'pelicula_id'
+            ];
+
+        $finalizaEn =
+            $this
+                ->calcularFinalizacion(
+                    peliculaId:
+                        $peliculaId,
+
+                    iniciaEn:
+                        $iniciaEn,
+                );
 
         $this->validarTraslape(
             salaId:
@@ -277,9 +255,7 @@ class FuncionService
             Funcion::query()
                 ->create([
                     'pelicula_id' =>
-                        (int) $datos[
-                            'pelicula_id'
-                        ],
+                        $peliculaId,
 
                     'sala_id' =>
                         (int) $datos[
@@ -328,182 +304,179 @@ class FuncionService
         Funcion $funcion,
         array $datos
     ): Funcion {
-        return DB::transaction(function () use (
-            $funcion,
-            $datos
-        ) {
-            $funcion = Funcion::query()
-                ->lockForUpdate()
-                ->findOrFail($funcion->id);
-
-            if (
-                $funcion->estado
-                !== 'PROGRAMADA'
+        return DB::transaction(
+            function () use (
+                $funcion,
+                $datos
             ) {
-                throw ValidationException::withMessages([
-                    'funcion' =>
-                        'Solamente pueden editarse funciones que se encuentren PROGRAMADAS.',
-                ]);
-            }
+                $funcion =
+                    Funcion::query()
+                        ->lockForUpdate()
+                        ->findOrFail(
+                            $funcion->id
+                        );
 
-            if (
-                $funcion
-                    ->reservas()
-                    ->exists()
-                || $funcion
-                    ->ventas()
-                    ->exists()
-            ) {
-                throw ValidationException::withMessages([
-                    'funcion' =>
-                        'La función no puede modificarse porque ya tiene reservas o ventas asociadas.',
-                ]);
-            }
+                if (
+                    $funcion->estado
+                    !== 'PROGRAMADA'
+                ) {
+                    throw ValidationException::withMessages([
+                        'funcion' =>
+                            'Solamente pueden editarse funciones que se encuentren PROGRAMADAS.',
+                    ]);
+                }
 
-            $salaId =
-                (int) (
-                    $datos[
-                        'sala_id'
-                    ]
-                    ?? $funcion
-                        ->sala_id
-                );
+                if (
+                    $funcion
+                        ->reservas()
+                        ->exists()
+                    || $funcion
+                        ->ventas()
+                        ->exists()
+                ) {
+                    throw ValidationException::withMessages([
+                        'funcion' =>
+                            'La función no puede modificarse porque ya tiene reservas o ventas asociadas.',
+                    ]);
+                }
 
-            $peliculaId =
-                (int) (
-                    $datos[
-                        'pelicula_id'
-                    ]
-                    ?? $funcion
-                        ->pelicula_id
-                );
-
-            $formatoId =
-                (int) (
-                    $datos[
-                        'formato_id'
-                    ]
-                    ?? $funcion
-                        ->formato_id
-                );
-
-            $iniciaEn =
-                Carbon::parse(
-                    $datos[
-                        'inicia_en'
-                    ]
-                    ?? $funcion
-                        ->inicia_en
-                );
-
-            $finalizaEn =
-                Carbon::parse(
-                    $datos[
-                        'finaliza_en'
-                    ]
-                    ?? $funcion
-                        ->finaliza_en
-                );
-
-            if (
-                $finalizaEn
-                    ->lessThanOrEqualTo(
-                        $iniciaEn
-                    )
-            ) {
-                throw ValidationException::withMessages([
-                    'finaliza_en' =>
-                        'La finalización debe ser posterior al inicio.',
-                ]);
-            }
-
-            if (
-                $iniciaEn->isPast()
-            ) {
-                throw ValidationException::withMessages([
-                    'inicia_en' =>
-                        'La función no puede iniciar en una fecha pasada.',
-                ]);
-            }
-
-            $this->validarTraslape(
-                salaId:
-                    $salaId,
-
-                iniciaEn:
-                    $iniciaEn,
-
-                finalizaEn:
-                    $finalizaEn,
-
-                ignorarFuncionId:
-                    $funcion->id,
-            );
-
-            $precioBase =
-                $this->obtenerPrecioFormato(
-                    $formatoId
-                );
-
-            $cambioSala =
-                $salaId
-                !== $funcion
-                    ->sala_id;
-
-            $cambioFormato =
-                $formatoId
-                !== $funcion
-                    ->formato_id;
-
-            $funcion->update([
-                'pelicula_id' =>
-                    $peliculaId,
-
-                'sala_id' =>
-                    $salaId,
-
-                'formato_id' =>
-                    $formatoId,
-
-                'inicia_en' =>
-                    $iniciaEn,
-
-                'finaliza_en' =>
-                    $finalizaEn,
-
-                'precio_base' =>
-                    $precioBase,
-            ]);
-
-            if ($cambioSala) {
-                $funcion
-                    ->asientos()
-                    ->delete();
-
-                $this
-                    ->generarMapaAsientos(
-                        $funcion
+                $salaId =
+                    (int) (
+                        $datos[
+                            'sala_id'
+                        ]
+                        ?? $funcion
+                            ->sala_id
                     );
-            } elseif (
-                $cambioFormato
-            ) {
-                $funcion
-                    ->asientos()
-                    ->update([
-                        'precio' =>
-                            $precioBase,
+
+                $peliculaId =
+                    (int) (
+                        $datos[
+                            'pelicula_id'
+                        ]
+                        ?? $funcion
+                            ->pelicula_id
+                    );
+
+                $formatoId =
+                    (int) (
+                        $datos[
+                            'formato_id'
+                        ]
+                        ?? $funcion
+                            ->formato_id
+                    );
+
+                $iniciaEn =
+                    Carbon::parse(
+                        $datos[
+                            'inicia_en'
+                        ]
+                        ?? $funcion
+                            ->inicia_en
+                    );
+
+                if (
+                    $iniciaEn
+                        ->isPast()
+                ) {
+                    throw ValidationException::withMessages([
+                        'inicia_en' =>
+                            'La función no puede iniciar en una fecha pasada.',
+                    ]);
+                }
+
+                $finalizaEn =
+                    $this
+                        ->calcularFinalizacion(
+                            peliculaId:
+                                $peliculaId,
+
+                            iniciaEn:
+                                $iniciaEn,
+                        );
+
+                $this->validarTraslape(
+                    salaId:
+                        $salaId,
+
+                    iniciaEn:
+                        $iniciaEn,
+
+                    finalizaEn:
+                        $finalizaEn,
+
+                    ignorarFuncionId:
+                        $funcion->id,
+                );
+
+                $precioBase =
+                    $this->obtenerPrecioFormato(
+                        $formatoId
+                    );
+
+                $cambioSala =
+                    $salaId
+                    !== $funcion
+                        ->sala_id;
+
+                $cambioFormato =
+                    $formatoId
+                    !== $funcion
+                        ->formato_id;
+
+                $funcion->update([
+                    'pelicula_id' =>
+                        $peliculaId,
+
+                    'sala_id' =>
+                        $salaId,
+
+                    'formato_id' =>
+                        $formatoId,
+
+                    'inicia_en' =>
+                        $iniciaEn,
+
+                    'finaliza_en' =>
+                        $finalizaEn,
+
+                    'precio_base' =>
+                        $precioBase,
+                ]);
+
+                if (
+                    $cambioSala
+                ) {
+                    $funcion
+                        ->asientos()
+                        ->delete();
+
+                    $this
+                        ->generarMapaAsientos(
+                            $funcion
+                        );
+                } elseif (
+                    $cambioFormato
+                ) {
+                    $funcion
+                        ->asientos()
+                        ->update([
+                            'precio' =>
+                                $precioBase,
+                        ]);
+                }
+
+                return $funcion
+                    ->refresh()
+                    ->load([
+                        'pelicula',
+                        'sala',
+                        'formato',
+                        'asientos.asiento',
                     ]);
             }
-
-            return $funcion
-                ->refresh()
-                ->load([
-                    'pelicula',
-                    'sala',
-                    'formato',
-                    'asientos.asiento',
-                ]);
-        });
+        );
     }
 
     /**
@@ -599,6 +572,84 @@ class FuncionService
     }
 
     /**
+     * Calcula la hora hasta la que
+     * la sala permanecerá ocupada.
+     *
+     * Ejemplo:
+     *
+     * Inicio: 19:30
+     * Duración: 186 minutos
+     * Fin real: 22:36
+     * Fin programado: 22:45
+     */
+    private function calcularFinalizacion(
+        int $peliculaId,
+        Carbon $iniciaEn
+    ): Carbon {
+        $pelicula =
+            Pelicula::query()
+                ->find(
+                    $peliculaId
+                );
+
+        if (
+            ! $pelicula
+        ) {
+            throw ValidationException::withMessages([
+                'pelicula_id' =>
+                    'La película seleccionada no existe.',
+            ]);
+        }
+
+        $duracionMinutos =
+            (int) $pelicula
+                ->duracion_minutos;
+
+        if (
+            $duracionMinutos
+            <= 0
+        ) {
+            throw ValidationException::withMessages([
+                'pelicula_id' =>
+                    'La película seleccionada no tiene una duración válida.',
+            ]);
+        }
+
+        $finalizaEn =
+            $iniciaEn
+                ->copy()
+                ->addMinutes(
+                    $duracionMinutos
+                )
+                ->second(0)
+                ->microsecond(0);
+
+        /*
+         * Redondear siempre hacia arriba
+         * al siguiente cuarto de hora.
+         *
+         * Si ya cae exactamente en
+         * :00, :15, :30 o :45,
+         * se conserva.
+         */
+        $resto =
+            $finalizaEn
+                ->minute
+            % 15;
+
+        if (
+            $resto !== 0
+        ) {
+            $finalizaEn
+                ->addMinutes(
+                    15 - $resto
+                );
+        }
+
+        return $finalizaEn;
+    }
+
+    /**
      * Verifica que la sala no tenga
      * otro horario superpuesto.
      */
@@ -640,7 +691,9 @@ class FuncionService
             );
         }
 
-        if ($query->exists()) {
+        if (
+            $query->exists()
+        ) {
             $inicio =
                 Carbon::parse(
                     $iniciaEn
@@ -675,7 +728,9 @@ class FuncionService
                 )
                 ->first();
 
-        if (! $formato) {
+        if (
+            ! $formato
+        ) {
             throw ValidationException::withMessages([
                 'formato_id' =>
                     'El formato seleccionado no existe o está inactivo.',
@@ -727,7 +782,8 @@ class FuncionService
             ]);
         }
 
-        $ahora = now();
+        $ahora =
+            now();
 
         $registros =
             $asientos

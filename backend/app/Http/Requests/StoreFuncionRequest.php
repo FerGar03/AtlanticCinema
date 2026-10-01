@@ -44,12 +44,6 @@ class StoreFuncionRequest extends FormRequest
                 'after_or_equal:now',
             ],
 
-            'finaliza_en' => [
-                'required',
-                'date',
-                'after:inicia_en',
-            ],
-
             'estado' => [
                 'required',
                 'string',
@@ -102,15 +96,6 @@ class StoreFuncionRequest extends FormRequest
             'inicia_en.after_or_equal' =>
                 'La función no puede iniciar en una fecha pasada.',
 
-            'finaliza_en.required' =>
-                'Debe indicar la fecha y hora de finalización.',
-
-            'finaliza_en.date' =>
-                'La fecha y hora de finalización no es válida.',
-
-            'finaliza_en.after' =>
-                'La finalización debe ser posterior al inicio.',
-
             'estado.required' =>
                 'Debe indicar el estado de la función.',
 
@@ -125,8 +110,14 @@ class StoreFuncionRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'estado' => is_string($this->estado)
-                ? strtoupper(trim($this->estado))
+            'estado' => is_string(
+                $this->estado
+            )
+                ? strtoupper(
+                    trim(
+                        $this->estado
+                    )
+                )
                 : $this->estado,
         ]);
     }

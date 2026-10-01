@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -52,11 +53,6 @@ class StoreFuncionesMultiplesRequest extends FormRequest
             ],
 
             'hora_inicio' => [
-                'required',
-                'date_format:H:i',
-            ],
-
-            'hora_fin' => [
                 'required',
                 'date_format:H:i',
             ],
@@ -123,12 +119,6 @@ class StoreFuncionesMultiplesRequest extends FormRequest
             'hora_inicio.date_format' =>
                 'La hora de inicio no tiene un formato válido.',
 
-            'hora_fin.required' =>
-                'Debe indicar la hora de finalización.',
-
-            'hora_fin.date_format' =>
-                'La hora de finalización no tiene un formato válido.',
-
             'dias.required' =>
                 'Debe seleccionar al menos un día de la semana.',
 
@@ -143,7 +133,9 @@ class StoreFuncionesMultiplesRequest extends FormRequest
     public function after(): array
     {
         return [
-            function (Validator $validator): void {
+            function (
+                Validator $validator
+            ): void {
                 if (
                     ! $this->fecha_inicio
                     || ! $this->fecha_fin
@@ -152,33 +144,37 @@ class StoreFuncionesMultiplesRequest extends FormRequest
                 }
 
                 try {
-                    $inicio = now()
-                        ->parse($this->fecha_inicio)
-                        ->startOfDay();
+                    $inicio =
+                        Carbon::parse(
+                            $this->fecha_inicio
+                        )
+                            ->startOfDay();
 
-                    $fin = now()
-                        ->parse($this->fecha_fin)
-                        ->startOfDay();
+                    $fin =
+                        Carbon::parse(
+                            $this->fecha_fin
+                        )
+                            ->startOfDay();
 
-                    if ($inicio->diffInDays($fin) > 62) {
-                        $validator->errors()->add(
-                            'fecha_fin',
-                            'El rango no puede superar 63 días.'
-                        );
+                    if (
+                        $inicio
+                            ->diffInDays(
+                                $fin
+                            )
+                        > 62
+                    ) {
+                        $validator
+                            ->errors()
+                            ->add(
+                                'fecha_fin',
+                                'El rango no puede superar 63 días.'
+                            );
                     }
                 } catch (\Throwable) {
-                    // Las reglas date se encargan.
-                }
-
-                if (
-                    $this->hora_inicio
-                    && $this->hora_fin
-                    && $this->hora_fin <= $this->hora_inicio
-                ) {
-                    $validator->errors()->add(
-                        'hora_fin',
-                        'La hora de finalización debe ser posterior a la hora de inicio.'
-                    );
+                    /*
+                     * Las reglas date se
+                     * encargan del error.
+                     */
                 }
             },
         ];

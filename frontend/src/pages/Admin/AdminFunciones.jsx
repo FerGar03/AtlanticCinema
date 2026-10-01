@@ -17,7 +17,6 @@ const formularioInicial = {
   sala_id: '',
   formato_id: '',
   inicia_en: '',
-  finaliza_en: '',
 }
 
 const formularioMultipleInicial = {
@@ -27,7 +26,6 @@ const formularioMultipleInicial = {
   fecha_inicio: '',
   fecha_fin: '',
   hora_inicio: '',
-  hora_fin: '',
   dias: [
     2,
     3,
@@ -84,6 +82,186 @@ const diasSemana = [
     nombre: 'Domingo',
   },
 ]
+
+const completarDosDigitos =
+  (valor) =>
+    String(valor).padStart(
+      2,
+      '0'
+    )
+
+const calcularFinalizacionFechaHora =
+  (
+    inicio,
+    duracionMinutos
+  ) => {
+    if (
+      !inicio
+      || !duracionMinutos
+      || Number(duracionMinutos)
+        <= 0
+    ) {
+      return ''
+    }
+
+    const [
+      fecha,
+      hora,
+    ] = inicio.split('T')
+
+    if (
+      !fecha
+      || !hora
+    ) {
+      return ''
+    }
+
+    const [
+      year,
+      month,
+      day,
+    ] = fecha
+      .split('-')
+      .map(Number)
+
+    const [
+      hours,
+      minutes,
+    ] = hora
+      .split(':')
+      .map(Number)
+
+    if (
+      [
+        year,
+        month,
+        day,
+        hours,
+        minutes,
+      ].some(
+        (valor) =>
+          Number.isNaN(valor)
+      )
+    ) {
+      return ''
+    }
+
+    const finalizacion =
+      new Date(
+        year,
+        month - 1,
+        day,
+        hours,
+        minutes,
+        0,
+        0
+      )
+
+    finalizacion.setMinutes(
+      finalizacion.getMinutes()
+      + Number(
+        duracionMinutos
+      )
+    )
+
+    const resto =
+      finalizacion.getMinutes()
+      % 15
+
+    if (
+      resto !== 0
+    ) {
+      finalizacion.setMinutes(
+        finalizacion.getMinutes()
+        + (
+          15 - resto
+        )
+      )
+    }
+
+    return (
+      `${finalizacion.getFullYear()}`
+      + `-${completarDosDigitos(
+        finalizacion.getMonth()
+        + 1
+      )}`
+      + `-${completarDosDigitos(
+        finalizacion.getDate()
+      )}`
+      + `T${completarDosDigitos(
+        finalizacion.getHours()
+      )}`
+      + `:${completarDosDigitos(
+        finalizacion.getMinutes()
+      )}`
+    )
+  }
+
+const calcularHoraFinal =
+  (
+    horaInicio,
+    duracionMinutos
+  ) => {
+    if (
+      !horaInicio
+      || !duracionMinutos
+      || Number(duracionMinutos)
+        <= 0
+    ) {
+      return ''
+    }
+
+    const [
+      horas,
+      minutos,
+    ] = horaInicio
+      .split(':')
+      .map(Number)
+
+    if (
+      Number.isNaN(horas)
+      || Number.isNaN(minutos)
+    ) {
+      return ''
+    }
+
+    const totalInicial =
+      (
+        horas * 60
+      )
+      + minutos
+      + Number(
+        duracionMinutos
+      )
+
+    const totalRedondeado =
+      Math.ceil(
+        totalInicial / 15
+      ) * 15
+
+    const minutosDia =
+      totalRedondeado
+      % (
+        24 * 60
+      )
+
+    const horaFinal =
+      Math.floor(
+        minutosDia / 60
+      )
+
+    const minutoFinal =
+      minutosDia % 60
+
+    return (
+      `${completarDosDigitos(
+        horaFinal
+      )}`
+      + `:${completarDosDigitos(
+        minutoFinal
+      )}`
+    )
+  }
 
 function AdminFunciones() {
   const [
@@ -238,13 +416,78 @@ function AdminFunciones() {
       [salas]
     )
 
+  const peliculaIndividual =
+    useMemo(
+      () =>
+        peliculas.find(
+          (pelicula) =>
+            pelicula.id
+            === Number(
+              formulario
+                .pelicula_id
+            )
+        )
+        ?? null,
+      [
+        peliculas,
+        formulario
+          .pelicula_id,
+      ]
+    )
+
+  const peliculaMultiple =
+    useMemo(
+      () =>
+        peliculas.find(
+          (pelicula) =>
+            pelicula.id
+            === Number(
+              formularioMultiple
+                .pelicula_id
+            )
+        )
+        ?? null,
+      [
+        peliculas,
+        formularioMultiple
+          .pelicula_id,
+      ]
+    )
+
+  const finalizacionIndividual =
+    useMemo(
+      () =>
+        calcularFinalizacionFechaHora(
+          formulario
+            .inicia_en,
+          peliculaIndividual
+            ?.duracion_minutos
+        ),
+      [
+        formulario
+          .inicia_en,
+        peliculaIndividual,
+      ]
+    )
+
+  const horaFinMultiple =
+    useMemo(
+      () =>
+        calcularHoraFinal(
+          formularioMultiple
+            .hora_inicio,
+          peliculaMultiple
+            ?.duracion_minutos
+        ),
+      [
+        formularioMultiple
+          .hora_inicio,
+        peliculaMultiple,
+      ]
+    )
+
   /*
    * Carga de catálogos.
-   *
-   * Se ejecuta una sola vez porque
-   * películas, salas y formatos no
-   * necesitan recargarse después de
-   * cada operación sobre funciones.
    */
   const cargarCatalogos =
     async () => {
@@ -364,12 +607,6 @@ function AdminFunciones() {
           ),
         }
 
-        /*
-         * Si una operación reduce el número
-         * de páginas y la página actual deja
-         * de existir, regresamos a la última
-         * página válida.
-         */
         if (
           pagina
           > meta.last_page
@@ -407,16 +644,10 @@ function AdminFunciones() {
       }
     }
 
-  /*
-   * Catálogos.
-   */
   useEffect(() => {
     cargarCatalogos()
   }, [])
 
-  /*
-   * Debounce para la búsqueda.
-   */
   useEffect(() => {
     const temporizador =
       setTimeout(
@@ -436,10 +667,6 @@ function AdminFunciones() {
       )
   }, [busqueda])
 
-  /*
-   * Recarga cuando cambian
-   * filtros o paginación.
-   */
   useEffect(() => {
     cargarFunciones()
   }, [
@@ -584,8 +811,7 @@ function AdminFunciones() {
           .inicia_en,
 
       finaliza_en:
-        formulario
-          .finaliza_en,
+        finalizacionIndividual,
     })
 
   const guardarFuncion =
@@ -595,6 +821,16 @@ function AdminFunciones() {
       try {
         setGuardando(true)
         limpiarMensajes()
+
+        if (
+          !finalizacionIndividual
+        ) {
+          setError(
+            'No fue posible calcular la finalización de la función.'
+          )
+
+          return
+        }
 
         const payload =
           prepararPayload()
@@ -776,13 +1012,10 @@ function AdminFunciones() {
       }
 
       if (
-        formularioMultiple
-          .hora_fin
-        <= formularioMultiple
-          .hora_inicio
+        !horaFinMultiple
       ) {
         setError(
-          'La hora de finalización debe ser posterior a la hora de inicio.'
+          'No fue posible calcular la hora de finalización.'
         )
 
         return
@@ -845,8 +1078,7 @@ function AdminFunciones() {
                   .hora_inicio,
 
               hora_fin:
-                formularioMultiple
-                  .hora_fin,
+                horaFinMultiple,
 
               dias:
                 formularioMultiple
@@ -991,11 +1223,6 @@ function AdminFunciones() {
           convertirFechaFormulario(
             funcion.inicia_en
           ),
-
-        finaliza_en:
-          convertirFechaFormulario(
-            funcion.finaliza_en
-          ),
       })
 
       window.scrollTo({
@@ -1101,9 +1328,6 @@ function AdminFunciones() {
       }
     }
 
-  /*
-   * Filtros y paginación.
-   */
   const cambiarEstadoFiltro =
     (valor) => {
       setEstadoFiltro(
@@ -1598,28 +1822,48 @@ function AdminFunciones() {
                     </label>
 
                     <label>
-                      Finalización
+                      Finalización calculada
 
                       <input
                         type="datetime-local"
-                        name="finaliza_en"
                         value={
-                          formulario
-                            .finaliza_en
+                          finalizacionIndividual
                         }
-                        onChange={
-                          manejarCambio
-                        }
-                        required
+                        readOnly
                       />
                     </label>
                   </div>
 
                   <p className="admin-ayuda">
-                    La finalización debe
-                    incluir todo el tiempo
-                    durante el cual la sala
-                    permanecerá ocupada.
+                    {peliculaIndividual
+                      ? (
+                        <>
+                          Duración de la película:
+                          {' '}
+                          <strong>
+                            {
+                              peliculaIndividual
+                                .duracion_minutos
+                            }
+                            {' minutos'}
+                          </strong>
+                          .
+                          {' '}
+                          La finalización se
+                          calcula automáticamente
+                          y se redondea hacia arriba
+                          al siguiente bloque de
+                          15 minutos.
+                        </>
+                      )
+                      : (
+                        <>
+                          Selecciona una película
+                          y la hora de inicio para
+                          calcular automáticamente
+                          la finalización.
+                        </>
+                      )}
                   </p>
 
                   <div className="admin-form-acciones">
@@ -1864,22 +2108,50 @@ function AdminFunciones() {
                     </label>
 
                     <label>
-                      Hora de finalización
+                      Finalización calculada
 
                       <input
                         type="time"
-                        name="hora_fin"
                         value={
-                          formularioMultiple
-                            .hora_fin
+                          horaFinMultiple
                         }
-                        onChange={
-                          manejarCambioMultiple
-                        }
-                        required
+                        readOnly
                       />
                     </label>
                   </div>
+
+                  <p className="admin-ayuda">
+                    {peliculaMultiple
+                      ? (
+                        <>
+                          Duración de la película:
+                          {' '}
+                          <strong>
+                            {
+                              peliculaMultiple
+                                .duracion_minutos
+                            }
+                            {' minutos'}
+                          </strong>
+                          .
+                          {' '}
+                          Todas las funciones
+                          calcularán automáticamente
+                          su finalización y la
+                          redondearán hacia arriba
+                          al siguiente bloque de
+                          15 minutos.
+                        </>
+                      )
+                      : (
+                        <>
+                          Selecciona una película
+                          y una hora de inicio para
+                          calcular automáticamente
+                          la finalización.
+                        </>
+                      )}
+                  </p>
 
                   <div className="funciones-dias-bloque">
                     <span className="funciones-dias-titulo">
@@ -1958,8 +2230,7 @@ function AdminFunciones() {
                             }
                             {' – '}
                             {
-                              formularioMultiple
-                                .hora_fin
+                              horaFinMultiple
                               || '--:--'
                             }
                           </span>
@@ -2585,6 +2856,21 @@ function AdminFunciones() {
 
               <div>
                 <span>
+                  Duración
+                </span>
+
+                <strong>
+                  {
+                    peliculaMultiple
+                      ?.duracion_minutos
+                    ?? '-'
+                  }
+                  {' min'}
+                </strong>
+              </div>
+
+              <div>
+                <span>
                   Horario
                 </span>
 
@@ -2595,8 +2881,7 @@ function AdminFunciones() {
                   }
                   {' – '}
                   {
-                    formularioMultiple
-                      .hora_fin
+                    horaFinMultiple
                   }
                 </strong>
               </div>

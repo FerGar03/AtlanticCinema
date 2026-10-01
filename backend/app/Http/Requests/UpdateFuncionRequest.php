@@ -46,12 +46,6 @@ class UpdateFuncionRequest extends FormRequest
                 'required',
                 'date',
             ],
-
-            'finaliza_en' => [
-                'sometimes',
-                'required',
-                'date',
-            ],
         ];
     }
 
@@ -78,9 +72,6 @@ class UpdateFuncionRequest extends FormRequest
 
             'inicia_en.date' =>
                 'La fecha y hora de inicio no es válida.',
-
-            'finaliza_en.date' =>
-                'La fecha y hora de finalización no es válida.',
         ];
     }
 }
