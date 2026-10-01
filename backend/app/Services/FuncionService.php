@@ -727,10 +727,15 @@ class FuncionService
             ]);
         }
 
+        $ahora = now();
+
         $registros =
             $asientos
                 ->map(
                     fn ($asiento) => [
+                        'funcion_id' =>
+                            $funcion->id,
+
                         'asiento_id' =>
                             $asiento->id,
 
@@ -743,14 +748,20 @@ class FuncionService
 
                         'bloqueado_hasta' =>
                             null,
+
+                        'created_at' =>
+                            $ahora,
+
+                        'updated_at' =>
+                            $ahora,
                     ]
                 )
                 ->all();
 
-        $funcion
-            ->asientos()
-            ->createMany(
-                $registros
-            );
+        DB::table(
+            'funcion_asientos'
+        )->insert(
+            $registros
+        );
     }
 }
