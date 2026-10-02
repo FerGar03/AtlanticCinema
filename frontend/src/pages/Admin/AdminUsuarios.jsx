@@ -1112,7 +1112,7 @@ function AdminUsuarios() {
             </form>
           </section>
                     <section className="admin-seccion">
-            <div className="admin-seccion-titulo">
+            <div className="admin-seccion-titulo admin-seccion-titulo-usuarios">
               <div>
                 <h2>
                   Usuarios registrados

@@ -72,6 +72,11 @@ function PagoCompra() {
   const [error, setError] =
     useState('')
 
+  const [
+    politicaAceptada,
+    setPoliticaAceptada,
+  ] = useState(false)
+
   useEffect(() => {
     const cargarVenta =
       async () => {
@@ -356,6 +361,14 @@ function PagoCompra() {
 
   const iniciarPago =
     async () => {
+      if (!politicaAceptada) {
+        setError(
+          'Debes aceptar la política de compra antes de continuar con el pago.'
+        )
+
+        return
+      }
+
       setError('')
       setIniciandoPago(true)
 
@@ -1140,6 +1153,53 @@ function PagoCompra() {
                           </p>
                         </div>
 
+                        <div className="pago-politica-compra">
+                          <div className="pago-politica-cabecera">
+                            <strong>
+                              Política de compra
+                            </strong>
+
+                            <span>
+                              IMPORTANTE
+                            </span>
+                          </div>
+
+                          <p>
+                            Las entradas adquiridas
+                            no admiten cambios ni
+                            reembolsos una vez
+                            confirmado el pago.
+                            Verifica la película,
+                            fecha, horario, sala y
+                            asientos antes de
+                            continuar.
+                          </p>
+
+                          <label className="pago-politica-aceptacion">
+                            <input
+                              type="checkbox"
+                              checked={
+                                politicaAceptada
+                              }
+                              onChange={(event) =>
+                                setPoliticaAceptada(
+                                  event.target.checked
+                                )
+                              }
+                              disabled={
+                                iniciandoPago
+                                || verificandoNit
+                              }
+                            />
+
+                            <span>
+                              He revisado los datos
+                              de mi compra y acepto
+                              la política de compra.
+                            </span>
+                          </label>
+                        </div>
+
                         <button
                           type="button"
                           className="pago-boton-principal pago-boton-pagar-final"
@@ -1150,6 +1210,7 @@ function PagoCompra() {
                             iniciandoPago
                             || verificandoNit
                             || !puedePagarConNit
+                            || !politicaAceptada
                           }
                         >
                           {iniciandoPago

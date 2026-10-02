@@ -20234,3 +20234,112 @@ button:hover {
   cursor: not-allowed;
   opacity: 1;
 }
+
+/* =========================================================
+   AJUSTES FINALES - POLÍTICA DE COMPRA
+   ========================================================= */
+
+.pago-politica-compra {
+  margin: 17px 0;
+  padding: 14px;
+  border: 1px solid rgba(214, 166, 70, 0.4);
+  border-radius: 10px;
+  background: rgba(214, 166, 70, 0.05);
+}
+
+.pago-politica-cabecera {
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pago-politica-cabecera strong {
+  color: var(--text-h);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.pago-politica-cabecera > span {
+  color: #e5bd68;
+  font-size: 0.52rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.pago-politica-compra > p {
+  color: var(--text);
+  font-size: 0.62rem;
+  line-height: 1.55;
+}
+
+.pago-politica-aceptacion {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(214, 166, 70, 0.22);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  cursor: pointer;
+}
+
+.pago-politica-aceptacion input {
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  flex-shrink: 0;
+  accent-color: #35bfc0;
+  cursor: pointer;
+}
+
+.pago-politica-aceptacion input:disabled {
+  cursor: not-allowed;
+}
+
+.pago-politica-aceptacion > span {
+  color: var(--text-h);
+  font-size: 0.62rem;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   AJUSTE AISLADO - CABECERA DEL LISTADO DE USUARIOS
+   ========================================================= */
+
+.admin-seccion-titulo-usuarios {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.admin-seccion-titulo-usuarios
+.admin-filtros-usuarios {
+  width: 100%;
+  max-width: none;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+}
+
+.admin-seccion-titulo-usuarios
+.admin-filtros-usuarios-titulo {
+  grid-column: 1 / -1;
+}
+
+.admin-seccion-titulo-usuarios
+.admin-filtros-usuarios
+.admin-boton-secundario {
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .admin-seccion-titulo-usuarios
+  .admin-filtros-usuarios {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-seccion-titulo-usuarios
+  .admin-filtros-usuarios-titulo {
+    grid-column: auto;
+  }
+}
