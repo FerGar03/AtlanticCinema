@@ -12,11 +12,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\AbstractProvider;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
+use Illuminate\Filesystem\FilesystemAdapter;
 
 class AuthController extends Controller
 {
@@ -204,37 +207,85 @@ class AuthController extends Controller
                 'La imagen no puede superar los 2 MB.',
         ]);
 
-        /*
-         * Eliminamos únicamente avatares locales anteriores.
-         * Nunca intentamos eliminar la URL proporcionada por Google.
-         */
+        $discoAvatar =
+            (string) config(
+                'filesystems.avatar_disk',
+                'public'
+            );
+
+        /** @var FilesystemAdapter $almacenamiento */
+        $almacenamiento =
+            Storage::disk(
+                $discoAvatar
+            );
+
+        $archivo =
+            $request->file('avatar');
+
+        $extension =
+            strtolower(
+                $archivo->extension()
+            );
+
+        $nombreArchivo =
+            (string) Str::uuid()
+            . '.'
+            . $extension;
+
+        $ruta =
+            $archivo->storeAs(
+                'usuarios/'
+                . $usuario->id,
+                $nombreArchivo,
+                $discoAvatar
+            );
+
+        if (
+            ! is_string($ruta)
+            || $ruta === ''
+        ) {
+            throw new RuntimeException(
+                'No fue posible almacenar la foto de perfil.'
+            );
+        }
+
+        $avatarUrl =
+            $almacenamiento->url(
+                $ruta
+            );
+
         $avatarAnterior =
             $usuario->avatar_url;
 
-        if (
-            $avatarAnterior
-            && str_starts_with(
-                $avatarAnterior,
-                'avatars/'
-            )
-        ) {
-            Storage::disk('public')
-                ->delete(
-                    $avatarAnterior
-                );
+        try {
+            $usuario->update([
+                'avatar_url' =>
+                    $avatarUrl,
+            ]);
+        } catch (Throwable $e) {
+            /*
+             * Si la base de datos falla después
+             * de subir la imagen, eliminamos el
+             * archivo nuevo para no dejar basura.
+             */
+            $almacenamiento->delete(
+                $ruta
+            );
+
+            throw $e;
         }
 
-        $ruta =
-            $request
-                ->file('avatar')
-                ->store(
-                    'avatars',
-                    'public'
-                );
-
-        $usuario->update([
-            'avatar_url' => $ruta,
-        ]);
+        /*
+         * Eliminamos la imagen anterior únicamente
+         * después de guardar correctamente la nueva.
+         *
+         * Nunca intentamos eliminar una URL externa
+         * proporcionada por Google.
+         */
+        $this->eliminarAvatarAnterior(
+            $avatarAnterior,
+            $discoAvatar
+        );
 
         $usuario->refresh();
         $usuario->load('rol');
@@ -398,6 +449,90 @@ class AuthController extends Controller
                 . rawurlencode($mensaje)
             );
         }
+    }
+
+    private function eliminarAvatarAnterior(
+        ?string $avatarAnterior,
+        string $discoAvatar
+    ): void {
+        if (
+            $avatarAnterior === null
+            || trim($avatarAnterior) === ''
+        ) {
+            return;
+        }
+
+        /*
+         * Compatibilidad con avatares históricos
+         * guardados en storage/app/public/avatars.
+         */
+        if (
+            str_starts_with(
+                $avatarAnterior,
+                'avatars/'
+            )
+        ) {
+            Storage::disk('public')
+                ->delete(
+                    $avatarAnterior
+                );
+
+            return;
+        }
+
+        /*
+         * Para el disco actual, únicamente borramos
+         * archivos cuya URL pertenezca exactamente
+         * al prefijo público configurado.
+         *
+         * De esta forma una URL de Google u otro
+         * proveedor externo nunca será eliminada.
+         */
+        $urlBase =
+            rtrim(
+                (string) config(
+                    'filesystems.disks.'
+                    . $discoAvatar
+                    . '.url',
+                    ''
+                ),
+                '/'
+            );
+
+        if ($urlBase === '') {
+            return;
+        }
+
+        $prefijo =
+            $urlBase . '/';
+
+        if (
+            ! str_starts_with(
+                $avatarAnterior,
+                $prefijo
+            )
+        ) {
+            return;
+        }
+
+        $rutaAnterior =
+            ltrim(
+                substr(
+                    $avatarAnterior,
+                    strlen($prefijo)
+                ),
+                '/'
+            );
+
+        if ($rutaAnterior === '') {
+            return;
+        }
+
+        Storage::disk(
+            $discoAvatar
+        )->delete(
+            $rutaAnterior
+        );
     }
 
     private function normalizarDatoOpcional(
