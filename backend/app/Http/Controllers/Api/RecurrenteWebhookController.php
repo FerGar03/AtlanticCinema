@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notificacion;
 use App\Models\Pago;
 use App\Services\FacturaService;
 use App\Services\NotificacionService;
@@ -635,34 +636,44 @@ class RecurrenteWebhookController extends Controller
                     );
 
             /*
-             * Procesamos las notificaciones EMAIL
-             * pendientes o con error asociadas
-             * a los tickets generados.
+             * Procesamos una sola notificación EMAIL
+             * asociada a la venta.
+             *
+             * TicketService crea una única notificación
+             * cuando realmente se generan tickets nuevos.
+             *
+             * Si el webhook es reenviado y el correo ya
+             * quedó ENVIADA, no existe ninguna notificación
+             * pendiente que pueda duplicar el envío.
+             *
+             * Si un intento anterior quedó ERROR, un replay
+             * puede volver a intentar ese único correo sin
+             * afectar pago, venta, factura ni tickets.
              */
-            foreach ($tickets as $ticket) {
-                $notificacion =
-                    $ticket
-                        ->notificaciones()
-                        ->where(
-                            'canal',
-                            'EMAIL'
-                        )
-                        ->whereIn(
-                            'estado',
-                            [
-                                'PENDIENTE',
-                                'ERROR',
-                            ]
-                        )
-                        ->latest(
-                            'id'
-                        )
-                        ->first();
+            $notificacion =
+                Notificacion::query()
+                    ->where(
+                        'venta_id',
+                        $venta->id
+                    )
+                    ->whereNull(
+                        'ticket_id'
+                    )
+                    ->where(
+                        'canal',
+                        'EMAIL'
+                    )
+                    ->whereIn(
+                        'estado',
+                        [
+                            'PENDIENTE',
+                            'ERROR',
+                        ]
+                    )
+                    ->latest('id')
+                    ->first();
 
-                if (! $notificacion) {
-                    continue;
-                }
-
+            if ($notificacion) {
                 try {
                     $this
                         ->notificacionService
@@ -671,20 +682,17 @@ class RecurrenteWebhookController extends Controller
                         );
                 } catch (\Throwable $exception) {
                     /*
-                     * El ticket ya fue generado.
+                     * Los tickets ya fueron generados.
                      *
                      * Un fallo de correo no debe
                      * revertir pago, venta, factura
-                     * ni ticket.
+                     * ni tickets.
                      */
                     Log::error(
-                        'El ticket fue generado, pero no fue posible enviar el correo electrónico.',
+                        'Los tickets fueron generados, pero no fue posible enviar el correo unificado de la venta.',
                         [
                             'venta_id' =>
                                 $venta->id,
-
-                            'ticket_id' =>
-                                $ticket->id,
 
                             'notificacion_id' =>
                                 $notificacion->id,

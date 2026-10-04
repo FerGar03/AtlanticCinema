@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GenerarTicketRequest;
 use App\Http\Requests\ValidarTicketRequest;
+use App\Models\Notificacion;
 use App\Models\Ticket;
 use App\Models\Venta;
 use App\Services\NotificacionService;
@@ -482,37 +483,37 @@ class TicketController extends Controller
                 );
 
         /*
-         * TicketService puede devolver
-         * también tickets existentes
-         * porque los reutiliza para evitar
-         * duplicados.
+         * TicketService crea ahora una sola
+         * notificación EMAIL por la operación
+         * de generación de tickets.
          *
-         * Únicamente procesamos
-         * notificaciones que se encuentren
-         * todavía PENDIENTE.
+         * Esa notificación pertenece a la venta
+         * y NotificacionService adjunta todos los
+         * tickets disponibles más la factura FEL
+         * cuando corresponda.
          */
-        $notificacionesPendientes =
-            $tickets
-                ->flatMap(
-                    fn (
-                        Ticket $ticket
-                    ) =>
-                        $ticket
-                            ->notificaciones
-                            ?? collect()
+        $notificacion =
+            Notificacion::query()
+                ->where(
+                    'venta_id',
+                    $venta->id
                 )
-                ->filter(
-                    fn (
-                        $notificacion
-                    ): bool =>
-                        $notificacion
-                            ->estado
-                        === 'PENDIENTE'
+                ->whereNull(
+                    'ticket_id'
                 )
-                ->unique(
-                    'id'
+                ->where(
+                    'canal',
+                    'EMAIL'
                 )
-                ->values();
+                ->whereIn(
+                    'estado',
+                    [
+                        'PENDIENTE',
+                        'ERROR',
+                    ]
+                )
+                ->latest('id')
+                ->first();
 
         $correosEnviados =
             0;
@@ -520,10 +521,7 @@ class TicketController extends Controller
         $correosError =
             0;
 
-        foreach (
-            $notificacionesPendientes
-            as $notificacion
-        ) {
+        if ($notificacion) {
             try {
                 $this
                     ->notificacionService
@@ -531,21 +529,19 @@ class TicketController extends Controller
                         $notificacion->id
                     );
 
-                $correosEnviados++;
+                $correosEnviados =
+                    1;
             } catch (
                 Throwable $exception
             ) {
-                $correosError++;
+                $correosError =
+                    1;
 
                 Log::error(
-                    'El ticket fue generado, pero no fue posible enviar su notificación por correo.',
+                    'Los tickets fueron generados, pero no fue posible enviar el correo unificado de la venta.',
                     [
                         'venta_id' =>
                             $venta->id,
-
-                        'ticket_id' =>
-                            $notificacion
-                                ->ticket_id,
 
                         'notificacion_id' =>
                             $notificacion
@@ -561,7 +557,7 @@ class TicketController extends Controller
 
         /*
          * Volvemos a consultar para devolver
-         * datos actualizados de notificaciones.
+         * la información actualizada.
          */
         $ticketsActualizados =
             Ticket::query()
@@ -589,12 +585,12 @@ class TicketController extends Controller
             $correosError > 0
         ) {
             $mensaje .=
-                ' Uno o más correos no pudieron enviarse, pero los tickets continúan siendo válidos.';
+                ' El correo unificado de la venta no pudo enviarse, pero los tickets continúan siendo válidos.';
         } elseif (
             $correosEnviados > 0
         ) {
             $mensaje .=
-                ' Las notificaciones por correo fueron procesadas correctamente.';
+                ' Se envió un único correo con los documentos disponibles de la venta.';
         }
 
         return response()->json([

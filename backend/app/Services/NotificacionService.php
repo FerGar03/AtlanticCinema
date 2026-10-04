@@ -102,13 +102,27 @@ class NotificacionService
             $adjuntos = [];
 
             /*
-             * Si la notificación corresponde
-             * a un ticket, generamos su PDF.
+             * Una notificación asociada a una venta
+             * representa ahora un único correo de compra.
+             *
+             * Por lo tanto adjuntamos todos los tickets
+             * válidos de esa venta en lugar de enviar
+             * un correo separado por cada ticket.
+             *
+             * Las notificaciones históricas que solo
+             * posean ticket_id continúan siendo
+             * compatibles.
              */
-            if ($notificacion->ticket) {
+            $tickets =
+                $this
+                    ->obtenerTicketsParaNotificacion(
+                        $notificacion
+                    );
+
+            foreach ($tickets as $ticket) {
                 $ticketPdf =
                     $this->generarTicketPdf(
-                        $notificacion->ticket
+                        $ticket
                     );
 
                 $adjuntos[] = [
@@ -178,25 +192,29 @@ class NotificacionService
                 }
             }
 
-            /*
-             * Mejoramos ligeramente el cuerpo
-             * del correo para informar sobre
-             * los documentos adjuntos.
-             */
             $mensaje =
                 trim(
                     (string)
                     $notificacion->mensaje
                 );
 
-            if ($notificacion->ticket) {
+            $cantidadTickets =
+                $tickets->count();
+
+            if ($cantidadTickets === 1) {
                 $mensaje .=
                     "\n\nAdjuntamos tu ticket electrónico en formato PDF.";
+            } elseif ($cantidadTickets > 1) {
+                $mensaje .=
+                    sprintf(
+                        "\n\nAdjuntamos tus %d tickets electrónicos en formato PDF.",
+                        $cantidadTickets
+                    );
+            }
 
-                if ($facturaAdjunta) {
-                    $mensaje .=
-                        "\nTambién encontrarás adjunta tu factura electrónica FEL.";
-                }
+            if ($facturaAdjunta) {
+                $mensaje .=
+                    "\nTambién encontrarás adjunta tu factura electrónica FEL.";
             }
 
             $mensaje .=
@@ -267,6 +285,9 @@ class NotificacionService
                         $notificacion
                             ->venta_id,
 
+                    'cantidad_tickets' =>
+                        $cantidadTickets,
+
                     'cantidad_adjuntos' =>
                         count(
                             $adjuntos
@@ -308,6 +329,75 @@ class NotificacionService
             'factura',
             'ticket',
         ]);
+    }
+
+    /**
+     * Obtiene los tickets que deben adjuntarse.
+     *
+     * Las nuevas notificaciones de compra se
+     * asocian a la venta y adjuntan todos sus
+     * tickets ACTIVO o UTILIZADO.
+     *
+     * Las notificaciones históricas asociadas
+     * únicamente a un ticket siguen funcionando.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Ticket>
+     */
+    private function obtenerTicketsParaNotificacion(
+        Notificacion $notificacion
+    ): \Illuminate\Database\Eloquent\Collection {
+        if ($notificacion->venta_id) {
+            return Ticket::query()
+                ->with([
+                    'entrada.venta.cliente',
+                    'entrada.funcionAsiento.asiento',
+                    'entrada.funcionAsiento.funcion.pelicula',
+                    'entrada.funcionAsiento.funcion.sala',
+                    'entrada.funcionAsiento.funcion.formato',
+                ])
+                ->whereHas(
+                    'entrada',
+                    function (
+                        $query
+                    ) use (
+                        $notificacion
+                    ): void {
+                        $query->where(
+                            'venta_id',
+                            $notificacion
+                                ->venta_id
+                        );
+                    }
+                )
+                ->whereIn(
+                    'estado',
+                    [
+                        'ACTIVO',
+                        'UTILIZADO',
+                    ]
+                )
+                ->orderBy('id')
+                ->get();
+        }
+
+        if ($notificacion->ticket) {
+            $ticket =
+                $notificacion->ticket;
+
+            $ticket->loadMissing([
+                'entrada.venta.cliente',
+                'entrada.funcionAsiento.asiento',
+                'entrada.funcionAsiento.funcion.pelicula',
+                'entrada.funcionAsiento.funcion.sala',
+                'entrada.funcionAsiento.funcion.formato',
+            ]);
+
+            return new \Illuminate\Database\Eloquent\Collection([
+                $ticket,
+            ]);
+        }
+
+        return new \Illuminate\Database\Eloquent\Collection();
     }
 
     /**
