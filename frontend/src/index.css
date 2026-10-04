@@ -4096,13 +4096,16 @@ code {
 }
 
 .pago-resultado-boton-principal {
+  display: block;
   width: 100%;
+  box-sizing: border-box;
   padding: 13px 18px;
   border-radius: 9px;
   background: #35bfc0;
   color: #071617;
   font-size: 0.78rem;
   font-weight: 800;
+  text-align: center;
   text-decoration: none;
   transition:
     transform 0.15s ease,
