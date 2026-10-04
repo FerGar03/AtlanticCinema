@@ -22,6 +22,13 @@ class FacturaService
      */
     private const TASA_IVA = 0.12;
 
+    /**
+     * Tiempo a partir del cual una factura FEL
+     * PENDIENTE se considera atascada y puede
+     * evaluarse para recuperación administrativa.
+     */
+    private const MINUTOS_PENDIENTE_ESTANCADA = 2;
+
     public function __construct(
         private readonly ProveedorFelInterface $proveedorFel
     ) {
@@ -162,10 +169,23 @@ class FacturaService
                     'detalles'
                 );
 
+                /*
+                 * La primera referencia interna FEL
+                 * se genera una sola vez por factura.
+                 *
+                 * Esta referencia también queda
+                 * registrada como idempotency_key del
+                 * primer intento para poder reutilizarla
+                 * de forma segura en futuros reintentos.
+                 */
+                $referenciaInterna =
+                    (string) Str::uuid();
+
                 $datosCertificacion =
                     $this
                         ->construirDatosCertificacion(
-                            $factura
+                            $factura,
+                            $referenciaInterna
                         );
 
                 $intento =
@@ -173,7 +193,8 @@ class FacturaService
                         ->crearIntentoCertificacion(
                             $factura,
                             $datosCertificacion,
-                            1
+                            1,
+                            $referenciaInterna
                         );
 
                 return [
@@ -251,24 +272,55 @@ class FacturaService
                     ]);
                 }
 
+                $referenciaInterna =
+                    null;
+
                 if (
                     $factura->estado
                     === 'PENDIENTE'
                 ) {
-                    throw ValidationException::withMessages([
-                        'factura_id' => [
-                            'La factura se encuentra pendiente de procesamiento.',
-                        ],
-                    ]);
-                }
+                    if (
+                        ! $this
+                            ->esPendienteEstancada(
+                                $factura
+                            )
+                    ) {
+                        throw ValidationException::withMessages([
+                            'factura_id' => [
+                                'La factura todavía se encuentra dentro del tiempo normal de procesamiento.',
+                            ],
+                        ]);
+                    }
 
-                if (
+                    $referenciaInterna =
+                        $this
+                            ->obtenerReferenciaInternaProtegida(
+                                $factura
+                            );
+
+                    if (
+                        $referenciaInterna
+                        === null
+                    ) {
+                        throw ValidationException::withMessages([
+                            'factura_id' => [
+                                'Esta factura pendiente fue creada antes de habilitar la protección de referencia interna. Debe verificarse manualmente en Digifact antes de intentar una nueva certificación.',
+                            ],
+                        ]);
+                    }
+                } elseif (
                     $factura->estado
-                    !== 'ERROR'
+                    === 'ERROR'
                 ) {
+                    $referenciaInterna =
+                        $this
+                            ->obtenerReferenciaInternaParaError(
+                                $factura
+                            );
+                } else {
                     throw ValidationException::withMessages([
                         'factura_id' => [
-                            'Solo es posible reintentar una factura en estado ERROR.',
+                            'Solo es posible reintentar una factura en estado ERROR o una factura PENDIENTE estancada y protegida.',
                         ],
                     ]);
                 }
@@ -317,7 +369,8 @@ class FacturaService
                 $datosCertificacion =
                     $this
                         ->construirDatosCertificacion(
-                            $factura
+                            $factura,
+                            $referenciaInterna
                         );
 
                 $ultimoNumeroIntento =
@@ -649,7 +702,8 @@ class FacturaService
     private function crearIntentoCertificacion(
         Factura $factura,
         array $datosCertificacion,
-        int $numeroIntento
+        int $numeroIntento,
+        ?string $idempotencyKey = null
     ): FacturaIntento {
         return $factura
             ->intentos()
@@ -664,12 +718,220 @@ class FacturaService
                     'PENDIENTE',
 
                 'idempotency_key' =>
-                    (string)
-                    Str::uuid(),
+                    $idempotencyKey
+                    ?? (string)
+                        Str::uuid(),
 
                 'solicitud' =>
                     $datosCertificacion,
             ]);
+    }
+
+    /**
+     * Determina si una factura PENDIENTE
+     * lleva suficiente tiempo sin ser procesada
+     * como para considerarla estancada.
+     */
+    private function esPendienteEstancada(
+        Factura $factura
+    ): bool {
+        if (
+            $factura->estado
+            !== 'PENDIENTE'
+        ) {
+            return false;
+        }
+
+        $ultimoIntento =
+            $factura
+                ->intentos
+                ->sortByDesc(
+                    'numero_intento'
+                )
+                ->first();
+
+        if (
+            ! $ultimoIntento
+            || $ultimoIntento->estado
+                !== 'PENDIENTE'
+            || ! $ultimoIntento->created_at
+        ) {
+            return false;
+        }
+
+        return $ultimoIntento
+            ->created_at
+            ->lte(
+                now()->subMinutes(
+                    self::MINUTOS_PENDIENTE_ESTANCADA
+                )
+            );
+    }
+
+    /**
+     * Obtiene la referencia interna que ya fue
+     * incluida explícitamente en una solicitud FEL.
+     *
+     * Se utiliza para reintentar de forma segura
+     * únicamente facturas creadas con la nueva
+     * protección de referencia interna.
+     */
+    private function obtenerReferenciaInternaProtegida(
+        Factura $factura
+    ): ?string {
+        $intentos =
+            $factura
+                ->intentos
+                ->sortBy(
+                    'numero_intento'
+                );
+
+        foreach (
+            $intentos
+            as $intento
+        ) {
+            $solicitud =
+                $this
+                    ->normalizarSolicitudIntento(
+                        $intento->solicitud
+                    );
+
+            $referencia =
+                $solicitud[
+                    'referencia_interna'
+                ] ?? null;
+
+            if (
+                $this
+                    ->esUuidValido(
+                        $referencia
+                    )
+            ) {
+                return trim(
+                    (string)
+                    $referencia
+                );
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Para facturas en ERROR conservamos la
+     * recuperación histórica.
+     *
+     * Si ya existe una referencia protegida se
+     * reutiliza. Para registros anteriores a este
+     * cambio se adopta la idempotency_key del primer
+     * intento como referencia estable para los
+     * siguientes reintentos.
+     */
+    private function obtenerReferenciaInternaParaError(
+        Factura $factura
+    ): string {
+        $referenciaProtegida =
+            $this
+                ->obtenerReferenciaInternaProtegida(
+                    $factura
+                );
+
+        if (
+            $referenciaProtegida
+            !== null
+        ) {
+            return $referenciaProtegida;
+        }
+
+        $primerIntento =
+            $factura
+                ->intentos
+                ->sortBy(
+                    'numero_intento'
+                )
+                ->first();
+
+        $idempotencyKey =
+            $primerIntento
+                ?->idempotency_key;
+
+        if (
+            $this
+                ->esUuidValido(
+                    $idempotencyKey
+                )
+        ) {
+            return trim(
+                (string)
+                $idempotencyKey
+            );
+        }
+
+        return (string) Str::uuid();
+    }
+
+    /**
+     * Normaliza el JSON guardado en solicitud
+     * para compatibilidad con registros históricos.
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizarSolicitudIntento(
+        mixed $solicitud
+    ): array {
+        if (
+            is_array(
+                $solicitud
+            )
+        ) {
+            return $solicitud;
+        }
+
+        if (
+            ! is_string(
+                $solicitud
+            )
+            || trim(
+                $solicitud
+            ) === ''
+        ) {
+            return [];
+        }
+
+        $decodificada =
+            json_decode(
+                $solicitud,
+                true
+            );
+
+        return is_array(
+            $decodificada
+        )
+            ? $decodificada
+            : [];
+    }
+
+    /**
+     * Comprueba que una referencia tenga
+     * formato UUID/GUID válido.
+     */
+    private function esUuidValido(
+        mixed $valor
+    ): bool {
+        if (
+            ! is_string(
+                $valor
+            )
+        ) {
+            return false;
+        }
+
+        return preg_match(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+            trim(
+                $valor
+            )
+        ) === 1;
     }
 
     /**
@@ -980,13 +1242,17 @@ class FacturaService
      * @return array<string, mixed>
      */
     private function construirDatosCertificacion(
-        Factura $factura
+        Factura $factura,
+        string $referenciaInterna
     ): array {
         $factura->loadMissing(
             'detalles'
         );
 
         return [
+            'referencia_interna' =>
+                $referenciaInterna,
+
             'numero_interno' =>
                 $factura
                     ->numero_interno,

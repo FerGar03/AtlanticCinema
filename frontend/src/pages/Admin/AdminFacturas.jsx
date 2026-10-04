@@ -8,6 +8,7 @@ import api from '../../services/api'
 
 import AdminSidebar
   from '../../components/Admin/AdminSidebar'
+const MINUTOS_PENDIENTE_ESTANCADA = 2
 
 function AdminFacturas() {
   const [facturas, setFacturas] =
@@ -219,6 +220,138 @@ function AdminFacturas() {
     }
   }
 
+  const normalizarSolicitudIntento = (
+    solicitud
+  ) => {
+    if (
+      solicitud
+      && typeof solicitud === 'object'
+      && !Array.isArray(solicitud)
+    ) {
+      return solicitud
+    }
+    if (
+      typeof solicitud !== 'string'
+      || !solicitud.trim()
+    ) {
+      return {}
+    }
+    try {
+      const datos = JSON.parse(solicitud)
+      return (
+        datos
+        && typeof datos === 'object'
+        && !Array.isArray(datos)
+      )
+        ? datos
+        : {}
+    } catch {
+      return {}
+    }
+  }
+  const obtenerIntentoMasReciente = (
+    factura
+  ) => {
+    const intentos = [
+      ...(factura?.intentos ?? []),
+    ]
+    if (intentos.length === 0) {
+      return null
+    }
+    return intentos.sort(
+      (a, b) =>
+        Number(b.numero_intento ?? 0)
+        - Number(a.numero_intento ?? 0)
+    )[0]
+  }
+  const obtenerReferenciaProtegida = (
+    factura
+  ) => {
+    const intentos = [
+      ...(factura?.intentos ?? []),
+    ].sort(
+      (a, b) =>
+        Number(a.numero_intento ?? 0)
+        - Number(b.numero_intento ?? 0)
+    )
+    for (const intento of intentos) {
+      const solicitud =
+        normalizarSolicitudIntento(
+          intento.solicitud
+        )
+      const referencia = String(
+        solicitud.referencia_interna
+        ?? ''
+      ).trim()
+      if (referencia) {
+        return referencia
+      }
+    }
+    return ''
+  }
+  const esPendienteEstancada = (
+    factura
+  ) => {
+    if (factura?.estado !== 'PENDIENTE') {
+      return false
+    }
+    const ultimoIntento =
+      obtenerIntentoMasReciente(factura)
+    if (
+      !ultimoIntento
+      || ultimoIntento.estado !== 'PENDIENTE'
+      || !ultimoIntento.created_at
+    ) {
+      return false
+    }
+    const creadoEn = new Date(
+      ultimoIntento.created_at
+    ).getTime()
+    if (Number.isNaN(creadoEn)) {
+      return false
+    }
+    return (Date.now() - creadoEn) >= (
+      MINUTOS_PENDIENTE_ESTANCADA
+      * 60
+      * 1000
+    )
+  }
+  const puedeReintentarFactura = (
+    factura
+  ) => {
+    if (factura?.estado === 'ERROR') {
+      return true
+    }
+    return (
+      esPendienteEstancada(factura)
+      && Boolean(
+        obtenerReferenciaProtegida(factura)
+      )
+    )
+  }
+  const requiereRevisionManual = (
+    factura
+  ) => {
+    return (
+      esPendienteEstancada(factura)
+      && !obtenerReferenciaProtegida(factura)
+    )
+  }
+  const facturasConIncidencia =
+    useMemo(
+      () =>
+        facturas.filter(
+          (factura) =>
+            factura.estado === 'ERROR'
+            || esPendienteEstancada(
+              factura
+            )
+        ),
+      [facturas]
+    )
+  const totalIncidencias =
+    facturasConIncidencia.length
+    + ventasSinFactura.length
   const facturasFiltradas =
     useMemo(() => {
       const termino =
@@ -497,8 +630,7 @@ function AdminFacturas() {
                 'start',
             })
         }, 0)
-      } catch (err) {
-        setError(
+      } catch (err) {setError(
           obtenerPrimerError(
             err
           )
@@ -868,6 +1000,16 @@ function AdminFacturas() {
                             procesandoId
                             === `reintento-${factura.id}`
 
+                          const puedeReintentar =
+                            puedeReintentarFactura(
+                              factura
+                            )
+
+                          const revisionManual =
+                            requiereRevisionManual(
+                              factura
+                            )
+
                           return (
                             <tr
                               key={
@@ -997,31 +1139,33 @@ function AdminFacturas() {
                                       verDetalle(
                                         factura
                                       )
-                                    }
-                                  >
+                                    }>
                                     Ver detalle
                                   </button>
 
-                                  {factura
-                                    .estado
-                                    === 'ERROR' && (
-                                      <button
-                                        type="button"
-                                        disabled={
-                                          procesandoId
-                                          !== null
-                                        }
-                                        onClick={() =>
-                                          reintentarFactura(
-                                            factura
-                                          )
-                                        }
-                                      >
-                                        {reintentando
-                                          ? 'Reintentando...'
-                                          : 'Reintentar facturación'}
-                                      </button>
-                                    )}
+                                  {puedeReintentar && (
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        procesandoId
+                                        !== null
+                                      }
+                                      onClick={() =>
+                                        reintentarFactura(
+                                          factura
+                                        )
+                                      }
+                                    >
+                                      {reintentando
+                                        ? 'Reintentando...'
+                                        : 'Reintentar facturación'}
+                                    </button>
+                                  )}
+                                  {revisionManual && (
+                                    <span className="admin-etiqueta">
+                                      Revisión manual
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -1072,28 +1216,58 @@ function AdminFacturas() {
                 </span>
               </div>
 
-              {facturaSeleccionada
-                .estado
-                === 'ERROR' && (
-                  <div
-                    className="
-                      admin-mensaje
-                      admin-mensaje-error
-                    "
-                  >
-                    La certificación FEL
-                    presentó un error.
-                    Puedes revisar los
-                    intentos registrados y
-                    volver a solicitar la
-                    certificación a Digifact.
-
+              {(
+                facturaSeleccionada.estado === 'ERROR'
+                || esPendienteEstancada(
+                  facturaSeleccionada
+                )
+              ) && (
+                <div
+                  className="
+                    admin-mensaje
+                    admin-mensaje-error
+                  "
+                >
+                  {facturaSeleccionada.estado === 'ERROR'
+                    ? (
+                      <>
+                        La certificación FEL presentó un error.
+                        Puedes revisar los intentos registrados
+                        y volver a solicitar la certificación
+                        a Digifact.
+                      </>
+                    )
+                    : requiereRevisionManual(
+                      facturaSeleccionada
+                    )
+                      ? (
+                        <>
+                          Esta factura permanece PENDIENTE fuera
+                          del tiempo normal de procesamiento y
+                          fue creada antes de habilitar la
+                          protección de referencia interna.
+                          Debe verificarse manualmente en
+                          Digifact antes de realizar otra
+                          certificación.
+                        </>
+                      )
+                      : (
+                        <>
+                          Esta factura permanece PENDIENTE fuera
+                          del tiempo normal de procesamiento.
+                          La referencia interna FEL está
+                          protegida y puede reintentarse sin
+                          crear una factura nueva.
+                        </>
+                      )}
+                  {puedeReintentarFactura(
+                    facturaSeleccionada
+                  ) && (
                     <div className="admin-form-acciones">
                       <button
                         type="button"
                         disabled={
-                          procesandoId
-                          !== null
+                          procesandoId !== null
                         }
                         onClick={() =>
                           reintentarFactura(
@@ -1107,8 +1281,9 @@ function AdminFacturas() {
                           : 'Reintentar facturación'}
                       </button>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              )}
 
               {facturaSeleccionada
                 .estado
@@ -1497,8 +1672,7 @@ function AdminFacturas() {
                                   {
                                     intento
                                       .mensaje_respuesta
-                                    ?? 'Sin mensaje'
-                                  }
+                                    ?? 'Sin mensaje'}
                                 </strong>
                               </p>
 
@@ -1530,209 +1704,252 @@ function AdminFacturas() {
                 <p className="admin-etiqueta">
                   RECUPERACIÓN
                 </p>
-
                 <h2>
                   Incidencias de facturación
                 </h2>
-
                 <p>
-                  Las facturas se generan
-                  automáticamente después
-                  de confirmar el pago.
-                  Aquí únicamente aparecen
-                  ventas pagadas que todavía
-                  no poseen una factura
-                  registrada.
+                  Aquí aparecen facturas con errores,
+                  facturas PENDIENTE fuera del tiempo
+                  normal de procesamiento y ventas
+                  pagadas que todavía no poseen una
+                  factura registrada.
                 </p>
               </div>
-
-              {ventasSinFactura.length
-                > 0 && (
-                  <span className="admin-etiqueta">
-                    {
-                      ventasSinFactura.length
-                    }
-                    {' '}
-                    incidencias pendientes
-                  </span>
-                )}
+              {totalIncidencias > 0 && (
+                <span className="admin-etiqueta">
+                  {totalIncidencias}{' '}
+                  incidencias pendientes
+                </span>
+              )}
             </div>
-
-            {ventasSinFactura.length
-              === 0 ? (
-                <div className="factura-sin-pendientes">
-                  <strong>
-                    Sin incidencias pendientes
-                  </strong>
-
-                  <p>
-                    Todas las ventas pagadas
-                    poseen una factura
-                    registrada.
-                  </p>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    maxHeight:
-                      '430px',
-
-                    overflowY:
-                      'auto',
-
-                    overflowX:
-                      'auto',
-                  }}
-                >
-                  <table
-                    className="admin-tabla"
+            {totalIncidencias === 0 ? (
+              <div className="factura-sin-pendientes">
+                <strong>
+                  Sin incidencias pendientes
+                </strong>
+                <p>
+                  Las ventas pagadas poseen su factura
+                  y no existen certificaciones FEL
+                  pendientes de recuperación.
+                </p>
+              </div>
+            ) : (
+              <>
+                {facturasConIncidencia.length > 0 && (
+                  <div
                     style={{
-                      minWidth:
-                        '980px',
+                      overflowX: 'auto',
+                      marginBottom:
+                        ventasSinFactura.length > 0
+                          ? '24px'
+                          : 0,
                     }}
                   >
-                    <thead>
-                      <tr>
-                        <th>
-                          Venta
-                        </th>
-
-                        <th>
-                          Cliente
-                        </th>
-
-                        <th>
-                          Película
-                        </th>
-
-                        <th>
-                          Total
-                        </th>
-
-                        <th>
-                          Datos fiscales
-                        </th>
-
-                        <th>
-                          Acción
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {ventasSinFactura.map(
-                        (venta) => {
-                          const datosFiscales =
-                            obtenerDatosFiscalVenta(
-                              venta
-                            )
-
-                          const procesando =
-                            procesandoId
-                            === `faltante-${venta.id}`
-
-                          return (
-                            <tr
-                              key={
-                                venta.id
-                              }
-                            >
-                              <td>
-                                <strong>
-                                  {
-                                    venta
-                                      .numero_venta
-                                  }
-                                </strong>
-                              </td>
-
-                              <td>
-                                <div className="factura-tabla-receptor">
+                    <table
+                      className="admin-tabla"
+                      style={{ minWidth: '980px' }}
+                    >
+                      <thead>
+                        <tr>
+                          <th>Factura</th>
+                          <th>Venta</th>
+                          <th>Estado</th>
+                          <th>Situación</th>
+                          <th>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {facturasConIncidencia.map(
+                          (factura) => {
+                            const procesando =
+                              procesandoId
+                              === `reintento-${factura.id}`
+                            const puedeReintentar =
+                              puedeReintentarFactura(
+                                factura
+                              )
+                            const revisionManual =
+                              requiereRevisionManual(
+                                factura
+                              )
+                            return (
+                              <tr key={`factura-incidencia-${factura.id}`}>
+                                <td>
                                   <strong>
-                                    {obtenerNombreCliente(
-                                      venta
-                                    )}
+                                    {factura.numero_interno}
                                   </strong>
-
-                                  <span>
-                                    {
-                                      venta
-                                        .cliente
-                                        ?.correo
-                                      ?? '-'
-                                    }
-                                  </span>
-                                </div>
-                              </td>
-
-                              <td>
-                                {
-                                  venta
-                                    .funcion
-                                    ?.pelicula
-                                    ?.titulo
-                                  ?? '-'
-                                }
-                              </td>
-
-                              <td>
-                                <strong className="factura-tabla-total">
-                                  {formatearMonto(
-                                    venta.total
-                                  )}
-                                </strong>
-                              </td>
-
-                              <td>
-                                <div className="factura-tabla-receptor">
-                                  <strong>
-                                    {
-                                      datosFiscales
-                                        .nit_receptor
-                                    }
-                                  </strong>
-
-                                  <span>
-                                    {
-                                      datosFiscales
-                                        .nombre_receptor
-                                    }
-                                  </span>
-                                </div>
-                              </td>
-
-                              <td>
-                                <div className="admin-tabla-acciones">
-                                  <button
-                                    type="button"
-                                    disabled={
-                                      procesandoId
-                                      !== null
-                                    }
-                                    style={{
-                                      whiteSpace:
-                                        'nowrap',
-                                    }}
-                                    onClick={() =>
-                                      generarFacturaFaltante(
-                                        venta
+                                </td>
+                                <td>
+                                  {factura.venta
+                                    ?.numero_venta
+                                    ?? '-'}
+                                </td>
+                                <td>
+                                  <span
+                                    className={
+                                      obtenerClaseEstado(
+                                        factura.estado
                                       )
                                     }
                                   >
-                                    {procesando
-                                      ? 'Generando...'
-                                      : 'Generar factura faltante'}
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        }
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                                    {factura.estado}
+                                  </span>
+                                </td>
+                                <td>
+                                  {factura.estado === 'ERROR'
+                                    ? 'El proveedor FEL devolvió un error.'
+                                    : revisionManual
+                                      ? 'Pendiente estancada creada antes de la protección de referencia interna. Requiere verificación manual en Digifact.'
+                                      : 'Pendiente estancada con referencia interna protegida.'}
+                                </td>
+                                <td>
+                                  <div className="admin-tabla-acciones">
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        cargandoDetalle
+                                        || procesandoId !== null
+                                      }
+                                      onClick={() =>
+                                        verDetalle(factura)
+                                      }
+                                    >
+                                      Ver detalle
+                                    </button>
+                                    {puedeReintentar && (
+                                      <button
+                                        type="button"
+                                        disabled={
+                                          procesandoId !== null
+                                        }
+                                        onClick={() =>
+                                          reintentarFactura(
+                                            factura
+                                          )
+                                        }
+                                      >
+                                        {procesando
+                                          ? 'Reintentando...'
+                                          : 'Reintentar facturación'}
+                                      </button>
+                                    )}
+                                    {revisionManual && (
+                                      <span className="admin-etiqueta">
+                                        Revisión manual
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          }
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {ventasSinFactura.length > 0 && (
+                  <div
+                    style={{
+                      maxHeight: '430px',
+                      overflowY: 'auto',
+                      overflowX: 'auto',
+                    }}
+                  >
+                    <table
+                      className="admin-tabla"
+                      style={{ minWidth: '980px' }}
+                    >
+                      <thead>
+                        <tr>
+                          <th>Venta</th>
+                          <th>Cliente</th>
+                          <th>Película</th>
+                          <th>Total</th>
+                          <th>Datos fiscales</th>
+                          <th>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ventasSinFactura.map(
+                          (venta) => {
+                            const datosFiscales =
+                              obtenerDatosFiscalVenta(
+                                venta
+                              )
+                            const procesando =
+                              procesandoId
+                              === `faltante-${venta.id}`
+                            return (
+                              <tr key={`venta-sin-factura-${venta.id}`}>
+                                <td>
+                                  <strong>
+                                    {venta.numero_venta}
+                                  </strong>
+                                </td>
+                                <td>
+                                  <div className="factura-tabla-receptor">
+                                    <strong>
+                                      {obtenerNombreCliente(venta)}
+                                    </strong>
+                                    <span>
+                                      {venta.cliente?.correo ?? '-'}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td>
+                                  {venta.funcion
+                                    ?.pelicula
+                                    ?.titulo
+                                    ?? '-'}
+                                </td>
+                                <td>
+                                  <strong className="factura-tabla-total">
+                                    {formatearMonto(venta.total)}
+                                  </strong>
+                                </td>
+                                <td>
+                                  <div className="factura-tabla-receptor">
+                                    <strong>
+                                      {datosFiscales.nit_receptor}
+                                    </strong>
+                                    <span>
+                                      {datosFiscales.nombre_receptor}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="admin-tabla-acciones">
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        procesandoId !== null
+                                      }
+                                      style={{
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                      onClick={() =>
+                                        generarFacturaFaltante(
+                                          venta
+                                        )
+                                      }
+                                    >
+                                      {procesando
+                                        ? 'Generando...'
+                                        : 'Generar factura faltante'}
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          }
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
           </section>
         </div>
       </main>

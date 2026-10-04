@@ -284,7 +284,8 @@ class DigifactFelService implements ProveedorFelInterface
                 'Authorization' =>
                     $token,
             ])
-            ->timeout(30)
+            ->connectTimeout(10)
+            ->timeout(20)
             ->withQueryParameters([
                 /*
                  * Para los parámetros de la API
@@ -768,7 +769,23 @@ class DigifactFelService implements ProveedorFelInterface
         }
 
         $referenciaInterna =
-            (string) Str::uuid();
+            trim(
+                (string) (
+                    $datosFactura[
+                        'referencia_interna'
+                    ] ?? ''
+                )
+            );
+
+        if (
+            ! Str::isUuid(
+                $referenciaInterna
+            )
+        ) {
+            throw new RuntimeException(
+                'La referencia interna FEL no es un UUID válido.'
+            );
+        }
 
         return [
             'Version' =>
@@ -991,7 +1008,7 @@ class DigifactFelService implements ProveedorFelInterface
                                     null,
 
                                 'Value' =>
-                                    'NO_VALIDAR',
+                                    'VALIDAR',
                             ],
                         ],
                     ],
