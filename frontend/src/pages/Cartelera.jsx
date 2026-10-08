@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext'
 import logoAtlantic from '../assets/branding/atlantic-cinema-logo.png'
 import heroCinePersonas from '../assets/branding/hero-cine-personas.png'
 import heroSalaCine from '../assets/branding/hero-sala-cine.png'
+import './Cartelera.css'
 
 function Cartelera() {
   const navigate = useNavigate()
