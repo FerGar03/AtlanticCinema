@@ -111,6 +111,7 @@ class GenerarHistorialCine extends Command
         $inicioTexto = trim((string) $this->option('inicio'));
         $peliculaAId = (int) $this->option('pelicula-a');
         $peliculaBId = (int) $this->option('pelicula-b');
+
         $correoBase = strtolower(
             trim((string) $this->option('correo-base'))
         );
@@ -263,13 +264,14 @@ class GenerarHistorialCine extends Command
             );
         }
 
-        $this->validarSemanaDisponible(
-            $inicio,
-            $fin,
-            [
-                (int) $salaA->id,
-                (int) $salaB->id,
-            ]
+        $this->validarFuncionesPlanificadas(
+            inicio: $inicio,
+            peliculaA: $peliculaA,
+            peliculaB: $peliculaB,
+            salaA: $salaA,
+            salaB: $salaB,
+            horaA: $horaA,
+            horaB: $horaB,
         );
 
         return [
@@ -365,23 +367,84 @@ class GenerarHistorialCine extends Command
         return $hora;
     }
 
-    private function validarSemanaDisponible(
+    private function validarFuncionesPlanificadas(
         Carbon $inicio,
-        Carbon $fin,
-        array $salas
+        object $peliculaA,
+        object $peliculaB,
+        object $salaA,
+        object $salaB,
+        string $horaA,
+        string $horaB
     ): void {
-        $existen = DB::table('funciones')
-            ->whereIn('sala_id', $salas)
-            ->where('inicia_en', '>=', $inicio)
-            ->where('inicia_en', '<=', $fin)
-            ->exists();
+        for ($offset = 0; $offset <= 5; $offset++) {
+            $fecha = $inicio
+                ->copy()
+                ->addDays($offset);
 
-        if ($existen) {
-            throw new \RuntimeException(
-                'Ya existen funciones en una de las salas '
-                . 'durante la semana indicada. '
-                . 'El comando se detuvo para evitar duplicados.'
-            );
+            $planes = [
+                [
+                    'pelicula' => $peliculaA,
+                    'sala' => $salaA,
+                    'hora' => $horaA,
+                ],
+                [
+                    'pelicula' => $peliculaB,
+                    'sala' => $salaB,
+                    'hora' => $horaB,
+                ],
+            ];
+
+            foreach ($planes as $plan) {
+                $iniciaEn = Carbon::parse(
+                    $fecha->format('Y-m-d')
+                    . ' '
+                    . $plan['hora'],
+                    config('app.timezone')
+                );
+
+                $finalizaEn = $this->calcularFinalizacion(
+                    $iniciaEn,
+                    (int) $plan['pelicula']->duracion_minutos
+                );
+
+                $traslape = DB::table('funciones')
+                    ->where(
+                        'sala_id',
+                        $plan['sala']->id
+                    )
+                    ->where(
+                        'estado',
+                        '!=',
+                        'CANCELADA'
+                    )
+                    ->where(
+                        'inicia_en',
+                        '<',
+                        $finalizaEn
+                    )
+                    ->where(
+                        'finaliza_en',
+                        '>',
+                        $iniciaEn
+                    )
+                    ->first();
+
+                if ($traslape) {
+                    throw new \RuntimeException(
+                        'Existe un traslape en '
+                        . $plan['sala']->nombre
+                        . ' el '
+                        . $iniciaEn->format('d/m/Y')
+                        . ' entre '
+                        . $iniciaEn->format('H:i')
+                        . ' y '
+                        . $finalizaEn->format('H:i')
+                        . '. Función existente ID '
+                        . $traslape->id
+                        . '.'
+                    );
+                }
+            }
         }
     }
 
@@ -442,10 +505,12 @@ class GenerarHistorialCine extends Command
         );
 
         $this->newLine();
+
         $this->line(
             'Se crearán 12 funciones: '
             . '2 películas × martes a domingo.'
         );
+
         $this->line(
             'La ocupación variará aproximadamente entre 20 % y 40 %.'
         );
