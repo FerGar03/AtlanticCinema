@@ -15,7 +15,9 @@ import { useAuth } from '../context/AuthContext'
 import logoAtlantic from '../assets/branding/atlantic-cinema-logo.png'
 import heroCinePersonas from '../assets/branding/hero-cine-personas.png'
 import heroSalaCine from '../assets/branding/hero-sala-cine.png'
+
 import './Cartelera.css'
+
 
 function Cartelera() {
   const navigate = useNavigate()
@@ -38,6 +40,7 @@ function Cartelera() {
   const [slideActivo, setSlideActivo] =
     useState(0)
 
+
   useEffect(() => {
     const cargarFunciones =
       async () => {
@@ -56,8 +59,7 @@ function Cartelera() {
           )
         } catch (err) {
           setError(
-            err.response?.data
-              ?.message
+            err.response?.data?.message
             || 'No fue posible cargar la cartelera.'
           )
         } finally {
@@ -68,26 +70,30 @@ function Cartelera() {
     cargarFunciones()
   }, [])
 
+
   useEffect(() => {
-    const intervalo = window.setInterval(
-      () => {
-        setSlideActivo(
-          (actual) =>
-            (actual + 1) % 2
-        )
-      },
-      5500
-    )
+    const intervalo =
+      window.setInterval(
+        () => {
+          setSlideActivo(
+            (actual) =>
+              (actual + 1) % 2
+          )
+        },
+        5500
+      )
 
     return () =>
       window.clearInterval(intervalo)
   }, [])
+
 
   const cerrarSesion =
     async () => {
       await logout()
       navigate('/')
     }
+
 
   const rol =
     usuario?.rol?.nombre
@@ -99,6 +105,7 @@ function Cartelera() {
 
   const esAdministrador =
     rol === 'Administrador'
+
 
   const obtenerFecha = (
     fecha
@@ -119,6 +126,7 @@ function Cartelera() {
     ).format(new Date(fecha))
   }
 
+
   const obtenerHora = (
     fecha
   ) => {
@@ -137,6 +145,7 @@ function Cartelera() {
       }
     ).format(new Date(fecha))
   }
+
 
   const obtenerFechaHora = (
     fecha
@@ -160,6 +169,7 @@ function Cartelera() {
     ).format(new Date(fecha))
   }
 
+
   const obtenerPrecio = (
     precio
   ) => {
@@ -168,6 +178,7 @@ function Cartelera() {
 
     return `Q${numero.toFixed(2)}`
   }
+
 
   const funcionesDisponibles =
     useMemo(() => {
@@ -200,6 +211,7 @@ function Cartelera() {
         )
     }, [funciones])
 
+
   const peliculas =
     useMemo(() => {
       const agrupadas =
@@ -218,10 +230,13 @@ function Cartelera() {
           if (
             !agrupadas.has(clave)
           ) {
-            agrupadas.set(clave, {
-              pelicula,
-              funciones: [],
-            })
+            agrupadas.set(
+              clave,
+              {
+                pelicula,
+                funciones: [],
+              }
+            )
           }
 
           agrupadas
@@ -236,15 +251,18 @@ function Cartelera() {
       )
     }, [funcionesDisponibles])
 
+
   const totalFunciones =
     funcionesDisponibles.length
 
   const proximaFuncion =
     funcionesDisponibles[0] ?? null
 
+
   const formatosDisponibles =
     useMemo(() => {
-      const formatos = new Set()
+      const formatos =
+        new Set()
 
       funcionesDisponibles.forEach(
         (funcion) => {
@@ -257,13 +275,17 @@ function Cartelera() {
         }
       )
 
-      return Array.from(formatos)
+      return Array.from(
+        formatos
+      )
     }, [funcionesDisponibles])
+
 
   const heroSlides = [
     {
       id: 1,
-      imagen: heroCinePersonas,
+      imagen:
+        heroCinePersonas,
       etiqueta:
         'EXPERIENCIA ATLANTIC',
       titulo:
@@ -273,7 +295,8 @@ function Cartelera() {
     },
     {
       id: 2,
-      imagen: heroSalaCine,
+      imagen:
+        heroSalaCine,
       etiqueta:
         'CARTELERA DISPONIBLE',
       titulo:
@@ -283,13 +306,16 @@ function Cartelera() {
     },
   ]
 
+
   const slideActual =
     heroSlides[slideActivo]
+
 
   if (cargando) {
     return (
       <main className="cartelera-cargando">
         <div className="cartelera-spinner" />
+
         <p>
           Preparando cartelera...
         </p>
@@ -297,8 +323,10 @@ function Cartelera() {
     )
   }
 
+
   return (
     <main className="cartelera-pagina">
+
       <header className="cartelera-navbar">
         <Link
           to="/"
@@ -323,7 +351,9 @@ function Cartelera() {
           </div>
         </Link>
 
+
         <nav className="cartelera-navegacion">
+
           {autenticado ? (
             <>
               <div className="cartelera-usuario">
@@ -372,9 +402,7 @@ function Cartelera() {
               <button
                 type="button"
                 className="cartelera-boton-sesion"
-                onClick={
-                  cerrarSesion
-                }
+                onClick={cerrarSesion}
               >
                 Cerrar sesión
               </button>
@@ -396,19 +424,27 @@ function Cartelera() {
               </Link>
             </>
           )}
+
         </nav>
       </header>
+
 
       <section
         className="cartelera-hero-dinamico"
         style={{
-          backgroundImage: `linear-gradient(rgba(7, 10, 12, 0.78), rgba(7, 10, 12, 0.88)), url(${slideActual.imagen})`,
+          backgroundImage:
+            `linear-gradient(
+              rgba(7, 10, 12, 0.78),
+              rgba(7, 10, 12, 0.88)
+            ), url(${slideActual.imagen})`,
         }}
       >
         <div className="cartelera-hero-dinamico-overlay" />
 
         <div className="cartelera-hero-dinamico-contenido">
+
           <div className="cartelera-hero-copy">
+
             <span className="cartelera-etiqueta">
               {slideActual.etiqueta}
             </span>
@@ -418,12 +454,11 @@ function Cartelera() {
             </h1>
 
             <p>
-              {
-                slideActual.descripcion
-              }
+              {slideActual.descripcion}
             </p>
 
             <div className="cartelera-hero-acciones">
+
               <a
                 href="#peliculas"
                 className="cartelera-hero-boton"
@@ -439,9 +474,12 @@ function Cartelera() {
                   Crear cuenta
                 </Link>
               )}
+
             </div>
 
+
             <div className="cartelera-hero-slides-indicadores">
+
               {heroSlides.map(
                 (slide, index) => (
                   <button
@@ -462,11 +500,16 @@ function Cartelera() {
                   />
                 )
               )}
+
             </div>
+
           </div>
 
+
           <aside className="cartelera-hero-panel">
+
             <div className="cartelera-hero-panel-marca">
+
               <img
                 src={logoAtlantic}
                 alt="Atlantic Cinema"
@@ -482,15 +525,17 @@ function Cartelera() {
                   Plataforma web de cine
                 </span>
               </div>
+
             </div>
 
+
             <div className="cartelera-hero-kpis">
+
               <article>
                 <strong>
-                  {
-                    peliculas.length
-                  }
+                  {peliculas.length}
                 </strong>
+
                 <span>
                   {peliculas.length === 1
                     ? 'película en cartelera'
@@ -498,10 +543,12 @@ function Cartelera() {
                 </span>
               </article>
 
+
               <article>
                 <strong>
                   {totalFunciones}
                 </strong>
+
                 <span>
                   {totalFunciones === 1
                     ? 'función disponible'
@@ -509,59 +556,67 @@ function Cartelera() {
                 </span>
               </article>
 
+
               <article>
                 <strong>
-                  {formatosDisponibles.length
-                    > 0
-                    ? formatosDisponibles.join(
-                        ' / '
-                      )
+                  {formatosDisponibles.length > 0
+                    ? formatosDisponibles.join(' / ')
                     : '—'}
                 </strong>
+
                 <span>
                   formatos disponibles
                 </span>
               </article>
+
             </div>
 
+
             <div className="cartelera-hero-proxima">
+
               <span>
                 Próxima función
               </span>
 
               <strong>
                 {proximaFuncion
-                  ? `${
-                      proximaFuncion
-                        .pelicula
-                        ?.titulo
-                      || 'Película'
-                    }`
+                  ? (
+                    proximaFuncion
+                      .pelicula
+                      ?.titulo
+                    || 'Película'
+                  )
                   : 'Sin funciones próximas'}
               </strong>
 
               <small>
                 {proximaFuncion
                   ? `${obtenerFechaHora(
-                      proximaFuncion.inicia_en
-                    )} · ${
-                      proximaFuncion
-                        .sala
-                        ?.nombre
-                      || 'Sala'
-                    }`
+                    proximaFuncion.inicia_en
+                  )} · ${
+                    proximaFuncion
+                      .sala
+                      ?.nombre
+                    || 'Sala'
+                  }`
                   : 'Próximamente anunciaremos nuevos horarios.'}
               </small>
+
             </div>
+
           </aside>
+
         </div>
       </section>
+
 
       <section
         id="peliculas"
         className="cartelera-contenido"
       >
+
         <div className="cartelera-titulo-seccion">
+
           <div>
             <span className="cartelera-etiqueta">
               EN CARTELERA
@@ -573,14 +628,17 @@ function Cartelera() {
           </div>
 
           <p>
-            Consulta horarios
-            disponibles y selecciona
-            la función que prefieras.
+            Consulta horarios disponibles
+            y selecciona la función que
+            prefieras.
           </p>
+
         </div>
+
 
         {error && (
           <div className="cartelera-mensaje-error">
+
             <strong>
               No pudimos cargar la cartelera.
             </strong>
@@ -588,13 +646,16 @@ function Cartelera() {
             <span>
               {error}
             </span>
+
           </div>
         )}
+
 
         {!error
           && peliculas.length === 0
           && (
             <div className="cartelera-vacia">
+
               <div>
                 🎬
               </div>
@@ -607,16 +668,20 @@ function Cartelera() {
                 Próximamente tendremos
                 nuevas películas y horarios.
               </p>
+
             </div>
           )}
 
+
         <div className="cartelera-grid">
+
           {peliculas.map(
             ({
               pelicula,
               funciones:
                 funcionesPelicula,
             }) => (
+
               <article
                 className="pelicula-card"
                 key={
@@ -624,8 +689,11 @@ function Cartelera() {
                   ?? pelicula?.titulo
                 }
               >
+
                 <div className="pelicula-poster">
+
                   <div className="pelicula-poster-fallback">
+
                     <span>
                       ATLANTIC CINEMA
                     </span>
@@ -634,36 +702,54 @@ function Cartelera() {
                       {pelicula?.titulo
                         || 'Película'}
                     </strong>
+
                   </div>
 
+
                   {pelicula?.imagen_url && (
-                    <img
-                      src={
-                        pelicula.imagen_url
-                      }
-                      alt={`Póster de ${
-                        pelicula?.titulo
-                        || 'la película'
-                      }`}
-                      loading="lazy"
-                      onError={(
-                        event
-                      ) => {
-                        event.currentTarget.style.display =
-                          'none'
-                      }}
-                    />
+                    <>
+                      <img
+                        src={pelicula.imagen_url}
+                        alt=""
+                        aria-hidden="true"
+                        className="pelicula-poster-fondo"
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.style.display =
+                            'none'
+                        }}
+                      />
+
+                      <img
+                        src={pelicula.imagen_url}
+                        alt={`Póster de ${
+                          pelicula?.titulo
+                          || 'la película'
+                        }`}
+                        className="pelicula-poster-principal"
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.style.display =
+                            'none'
+                        }}
+                      />
+                    </>
                   )}
+
 
                   <div className="pelicula-poster-overlay">
                     <span>
                       EN CARTELERA
                     </span>
                   </div>
+
                 </div>
 
+
                 <div className="pelicula-contenido">
+
                   <div className="pelicula-cabecera">
+
                     <div>
                       <h3>
                         {pelicula?.titulo
@@ -676,48 +762,54 @@ function Cartelera() {
                         && (
                           <small className="pelicula-titulo-original">
                             {
-                              pelicula.titulo_original
+                              pelicula
+                                .titulo_original
                             }
                           </small>
                         )}
                     </div>
+
                   </div>
 
+
                   <div className="pelicula-datos">
+
                     {pelicula?.duracion_minutos && (
                       <span>
                         {
-                          pelicula.duracion_minutos
-                        }
-                        {' '}
-                        min
+                          pelicula
+                            .duracion_minutos
+                        } min
                       </span>
                     )}
 
-                    {pelicula?.clasificacion
+                    {pelicula
+                      ?.clasificacion
                       ?.nombre && (
-                      <span>
-                        {
-                          pelicula.clasificacion
-                            .nombre
-                        }
-                      </span>
-                    )}
-
-                    {pelicula?.generos
-                      ?.slice(0, 2)
-                      .map((genero) => (
-                        <span
-                          key={
-                            genero.id
-                          }
-                        >
+                        <span>
                           {
-                            genero.nombre
+                            pelicula
+                              .clasificacion
+                              .nombre
                           }
                         </span>
-                      ))}
+                      )}
+
+                    {pelicula
+                      ?.generos
+                      ?.slice(0, 2)
+                      .map(
+                        (genero) => (
+                          <span
+                            key={genero.id}
+                          >
+                            {genero.nombre}
+                          </span>
+                        )
+                      )}
+
                   </div>
+
 
                   {pelicula?.sinopsis && (
                     <p className="pelicula-sinopsis">
@@ -725,7 +817,9 @@ function Cartelera() {
                     </p>
                   )}
 
+
                   <div className="pelicula-funciones-titulo">
+
                     <strong>
                       Próximas funciones
                     </strong>
@@ -733,28 +827,29 @@ function Cartelera() {
                     <span>
                       {
                         funcionesPelicula.length
-                      }
-                      {' '}
+                      }{' '}
                       {funcionesPelicula.length
                       === 1
                         ? 'función'
                         : 'funciones'}
                     </span>
+
                   </div>
 
+
                   <div className="pelicula-funciones">
+
                     {funcionesPelicula.map(
-                      (
-                        funcion
-                      ) => (
+                      (funcion) => (
+
                         <Link
-                          key={
-                            funcion.id
-                          }
+                          key={funcion.id}
                           to={`/funciones/${funcion.id}`}
                           className="funcion-card-cartelera"
                         >
+
                           <div className="funcion-fecha">
+
                             <strong>
                               {obtenerFecha(
                                 funcion.inicia_en
@@ -766,21 +861,28 @@ function Cartelera() {
                                 funcion.inicia_en
                               )}
                             </span>
+
                           </div>
 
+
                           <div className="funcion-detalles-cartelera">
+
                             <span>
-                              {funcion.sala
+                              {funcion
+                                .sala
                                 ?.nombre
                                 || 'Sala'}
                             </span>
 
                             <small>
-                              {funcion.formato
+                              {funcion
+                                .formato
                                 ?.nombre
                                 || 'Formato'}
                             </small>
+
                           </div>
+
 
                           <strong className="funcion-precio">
                             {obtenerPrecio(
@@ -788,22 +890,34 @@ function Cartelera() {
                             )}
                           </strong>
 
+
                           <span className="funcion-flecha">
                             →
                           </span>
+
                         </Link>
+
                       )
                     )}
+
                   </div>
+
                 </div>
+
               </article>
+
             )
           )}
+
         </div>
+
       </section>
 
+
       <section className="cartelera-experiencia">
+
         <div>
+
           <span className="cartelera-etiqueta">
             TU EXPERIENCIA
           </span>
@@ -812,10 +926,14 @@ function Cartelera() {
             Del asiento a la pantalla,
             todo en un solo lugar.
           </h2>
+
         </div>
 
+
         <div className="cartelera-beneficios">
+
           <article>
+
             <span>
               01
             </span>
@@ -825,13 +943,16 @@ function Cartelera() {
             </strong>
 
             <p>
-              Consulta horarios,
-              sala, formato y precio
-              antes de continuar.
+              Consulta horarios, sala,
+              formato y precio antes
+              de continuar.
             </p>
+
           </article>
 
+
           <article>
+
             <span>
               02
             </span>
@@ -844,9 +965,12 @@ function Cartelera() {
               Visualiza la disponibilidad
               de la sala en tiempo real.
             </p>
+
           </article>
 
+
           <article>
+
             <span>
               03
             </span>
@@ -859,12 +983,18 @@ function Cartelera() {
               Completa tu compra y recibe
               tus documentos electrónicos.
             </p>
+
           </article>
+
         </div>
+
       </section>
 
+
       <footer className="cartelera-footer">
+
         <div className="cartelera-footer-marca">
+
           <div className="cartelera-logo-contenedor cartelera-logo-footer">
             <img
               src={logoAtlantic}
@@ -882,9 +1012,12 @@ function Cartelera() {
               Vive la experiencia.
             </span>
           </div>
+
         </div>
 
+
         <div className="cartelera-footer-enlaces">
+
           <a href="#peliculas">
             Cartelera
           </a>
@@ -898,14 +1031,19 @@ function Cartelera() {
               Iniciar sesión
             </Link>
           )}
+
         </div>
+
 
         <small>
           © 2026 Atlantic Cinema
         </small>
+
       </footer>
+
     </main>
   )
 }
+
 
 export default Cartelera
