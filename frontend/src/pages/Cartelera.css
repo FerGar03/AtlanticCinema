@@ -1,14 +1,8 @@
 /* =========================================================
-   CARTELERA - AJUSTES EXCLUSIVOS DE PÓSTERES
+   CARTELERA - AJUSTES EXCLUSIVOS DE IMÁGENES
 
-   Este archivo se carga únicamente desde Cartelera.jsx.
-   Todos los selectores están limitados a .cartelera-pagina
-   para no modificar ninguna otra pantalla del sistema.
-   ========================================================= */
-
-
-/* =========================================================
-   TARJETA
+   Este archivo solo afecta la página Cartelera porque
+   todos los selectores están limitados a .cartelera-pagina.
    ========================================================= */
 
 .cartelera-pagina .pelicula-card {
@@ -17,15 +11,12 @@
 
 
 /* =========================================================
-   ZONA DEL PÓSTER
-
-   Se cambia el formato horizontal 16:10 por una proporción
-   vertical similar a un póster cinematográfico.
+   CONTENEDOR DE IMAGEN
    ========================================================= */
 
 .cartelera-pagina .pelicula-poster {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  min-height: 260px;
 
   position: relative;
   overflow: hidden;
@@ -51,10 +42,7 @@
 
 
 /* =========================================================
-   IMAGEN
-
-   contain permite mostrar el póster completo.
-   No se recortan rostros, títulos ni contenido lateral.
+   IMAGEN COMPLETA
    ========================================================= */
 
 .cartelera-pagina .pelicula-poster img {
@@ -74,15 +62,11 @@
   background: #080b0d;
 
   transition:
-    transform 0.3s ease,
     filter 0.3s ease;
 }
 
-
-/* Evitamos el zoom anterior porque con contain
-   puede cortar nuevamente partes del póster. */
-
-.cartelera-pagina .pelicula-card:hover
+.cartelera-pagina
+.pelicula-card:hover
 .pelicula-poster img {
   transform: none;
   filter: brightness(1.03);
@@ -90,9 +74,7 @@
 
 
 /* =========================================================
-   MARCO INTERIOR
-
-   Da apariencia de cartel de cine sin alterar la imagen.
+   MARCO
    ========================================================= */
 
 .cartelera-pagina .pelicula-poster::before {
@@ -111,10 +93,6 @@
   border-radius: 10px;
 }
 
-
-/* Desactivamos el antiguo "AC" decorativo del fondo
-   solamente en esta pantalla. */
-
 .cartelera-pagina .pelicula-poster::after {
   content: none;
 }
@@ -122,9 +100,6 @@
 
 /* =========================================================
    FALLBACK
-
-   Se mantiene una presentación adecuada cuando una película
-   no tiene imagen o la imagen no puede cargarse.
    ========================================================= */
 
 .cartelera-pagina .pelicula-poster-fallback {
@@ -138,7 +113,7 @@
 
   box-sizing: border-box;
 
-  padding: 32px;
+  padding: 30px;
 
   display: flex;
   flex-direction: column;
@@ -188,9 +163,7 @@
 
 
 /* =========================================================
-   ETIQUETA "EN CARTELERA"
-
-   Se conserva, pero sin cubrir demasiado el póster.
+   ETIQUETA EN CARTELERA
    ========================================================= */
 
 .cartelera-pagina .pelicula-poster-overlay {
@@ -243,10 +216,7 @@
 
 
 /* =========================================================
-   ESCRITORIO
-
-   Evita que dos pósteres verticales hagan que las tarjetas
-   se vuelvan demasiado anchas.
+   GRID
    ========================================================= */
 
 @media (min-width: 901px) {
@@ -285,6 +255,10 @@ and (
     gap: 20px;
   }
 
+  .cartelera-pagina .pelicula-poster {
+    min-height: 230px;
+  }
+
 }
 
 
@@ -299,11 +273,7 @@ and (
   }
 
   .cartelera-pagina .pelicula-poster {
-    /*
-     * Sigue siendo vertical, pero ligeramente menos alto
-     * para que no ocupe toda la pantalla del teléfono.
-     */
-    aspect-ratio: 3 / 4;
+    min-height: 220px;
   }
 
   .cartelera-pagina
