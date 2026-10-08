@@ -11,10 +11,15 @@ use App\Services\FuncionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 class FuncionController extends Controller
 {
+    private const CACHE_CARTELERA = 'funciones:cartelera:publica';
+
+    private const CACHE_SEGUNDOS = 30;
+
     public function __construct(
         private readonly FuncionService $funcionService
     ) {
@@ -23,17 +28,22 @@ class FuncionController extends Controller
     /**
      * Lista las funciones.
      *
-     * Sin paginar=1 mantiene el comportamiento
-     * anterior para:
-     * - cartelera
-     * - taquilla
-     * - compra web
-     * - otros consumidores públicos
+     * Sin paginar=1:
+     * - cartelera;
+     * - taquilla;
+     * - compra web;
+     * - otros consumidores públicos.
      *
-     * Con paginar=1 habilita:
-     * - búsqueda
-     * - filtros administrativos
-     * - paginación
+     * En este caso solamente se devuelven funciones
+     * que todavía no han finalizado y que no están
+     * canceladas.
+     *
+     * Con paginar=1:
+     * - administración;
+     * - búsqueda;
+     * - filtros;
+     * - conteos;
+     * - paginación.
      */
     public function index(
         Request $request
@@ -96,17 +106,103 @@ class FuncionController extends Controller
             ],
         ]);
 
+        $paginar = $request->boolean(
+            'paginar'
+        );
+
+        /*
+         * El listado público más común:
+         *
+         * GET /api/funciones
+         *
+         * se almacena brevemente en caché.
+         *
+         * No se utilizan conteos administrativos
+         * porque la cartelera no los necesita.
+         */
+        if (
+            ! $paginar
+            && empty($datos['buscar'])
+            && empty($datos['estado'])
+            && empty($datos['sala_id'])
+            && empty($datos['formato_id'])
+        ) {
+            $funciones = Cache::remember(
+                self::CACHE_CARTELERA,
+                now()->addSeconds(
+                    self::CACHE_SEGUNDOS
+                ),
+                function () {
+                    return Funcion::query()
+                        ->with([
+                            'pelicula',
+                            'sala',
+                            'formato',
+                        ])
+                        ->where(
+                            'finaliza_en',
+                            '>=',
+                            now()
+                        )
+                        ->where(
+                            'estado',
+                            '!=',
+                            'CANCELADA'
+                        )
+                        ->orderBy(
+                            'inicia_en'
+                        )
+                        ->get();
+                }
+            );
+
+            return response()->json([
+                'message' =>
+                    'Funciones obtenidas correctamente.',
+
+                'data' =>
+                    $funciones,
+            ]);
+        }
+
+        /*
+         * Construcción de la consulta.
+         */
         $consulta =
             Funcion::query()
                 ->with([
                     'pelicula',
                     'sala',
                     'formato',
-                ])
-                ->withCount([
-                    'reservas',
-                    'ventas',
                 ]);
+
+        /*
+         * Los conteos de reservas y ventas
+         * solamente se necesitan en el módulo
+         * administrativo.
+         */
+        if ($paginar) {
+            $consulta->withCount([
+                'reservas',
+                'ventas',
+            ]);
+        } else {
+            /*
+             * Los consumidores públicos solamente
+             * necesitan funciones vigentes.
+             */
+            $consulta
+                ->where(
+                    'finaliza_en',
+                    '>=',
+                    now()
+                )
+                ->where(
+                    'estado',
+                    '!=',
+                    'CANCELADA'
+                );
+        }
 
         /*
          * Búsqueda por película,
@@ -201,8 +297,7 @@ class FuncionController extends Controller
         ) {
             $consulta->where(
                 'sala_id',
-                (int)
-                $datos['sala_id']
+                (int) $datos['sala_id']
             );
         }
 
@@ -213,31 +308,19 @@ class FuncionController extends Controller
         ) {
             $consulta->where(
                 'formato_id',
-                (int)
-                $datos['formato_id']
+                (int) $datos['formato_id']
             );
         }
 
-        /*
-         * Conservamos el orden que ya
-         * utilizaba el módulo.
-         */
         $consulta->orderBy(
             'inicia_en'
         );
 
         /*
-         * Sin paginar=1 devolvemos
-         * nuevamente el arreglo completo.
-         *
-         * Esto es importante para no romper
-         * Cartelera ni Taquilla.
+         * Listado público filtrado,
+         * pero sin paginación.
          */
-        if (
-            ! $request->boolean(
-                'paginar'
-            )
-        ) {
+        if (! $paginar) {
             $funciones =
                 $consulta->get();
 
@@ -250,6 +333,9 @@ class FuncionController extends Controller
             ]);
         }
 
+        /*
+         * Listado administrativo paginado.
+         */
         $porPagina =
             (int) (
                 $datos['per_page']
@@ -306,6 +392,8 @@ class FuncionController extends Controller
                     $request->validated()
                 );
 
+        $this->limpiarCacheCartelera();
+
         return response()->json([
             'message' =>
                 'Función creada correctamente.',
@@ -328,6 +416,8 @@ class FuncionController extends Controller
                 ->crearMultiples(
                     $request->validated()
                 );
+
+        $this->limpiarCacheCartelera();
 
         return response()->json([
             'message' =>
@@ -380,6 +470,8 @@ class FuncionController extends Controller
                     $request->validated()
                 );
 
+        $this->limpiarCacheCartelera();
+
         return response()->json([
             'message' =>
                 'Función actualizada correctamente.',
@@ -399,6 +491,8 @@ class FuncionController extends Controller
                     $funcion
                 );
 
+        $this->limpiarCacheCartelera();
+
         return response()->json([
             'message' =>
                 'Función cancelada correctamente.',
@@ -406,5 +500,16 @@ class FuncionController extends Controller
             'data' =>
                 $funcion,
         ]);
+    }
+
+    /**
+     * Elimina la copia temporal de la cartelera
+     * después de cualquier modificación.
+     */
+    private function limpiarCacheCartelera(): void
+    {
+        Cache::forget(
+            self::CACHE_CARTELERA
+        );
     }
 }
